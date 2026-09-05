@@ -124,6 +124,25 @@ export const FinalAssessmentPage = () => {
   return (
     <div style={{ maxWidth: '780px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
+      {/* Top Agricultural Advisory Disclaimer Box */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          backgroundColor: '#FFF9DB',
+          border: '1px solid #FFE066',
+          borderRadius: 'var(--radius-md)',
+          padding: '12px 18px',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        <Info size={20} color="#D9480F" style={{ flexShrink: 0 }} />
+        <span style={{ fontSize: '13.5px', color: '#7E3E07', lineHeight: '1.5' }}>
+          <strong>{t('disclaimerTitle')}</strong> {disclaimer}
+        </span>
+      </div>
+
       {/* 1. Result Header Card */}
       <div className="card" style={{ padding: '24px', marginBottom: 0 }}>
         <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -469,25 +488,7 @@ export const FinalAssessmentPage = () => {
         </div>
       )}
 
-      {/* 7. Disclaimer Box */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '10px',
-          backgroundColor: '#FFF9DB',
-          border: '1px solid #FFE066',
-          borderRadius: 'var(--radius-sm)',
-          padding: '12px 16px',
-        }}
-      >
-        <Info size={18} color="#D9480F" style={{ flexShrink: 0, marginTop: '2px' }} />
-        <span style={{ fontSize: '13px', color: '#7E3E07', lineHeight: '1.5' }}>
-          <strong>{t('disclaimerTitle')}</strong> {disclaimer}
-        </span>
-      </div>
-
-      {/* 8. Bottom Action Controls */}
+      {/* 7. Bottom Action Controls */}
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', paddingTop: '8px', paddingBottom: '24px' }}>
         <button
           onClick={startCropCheck}
