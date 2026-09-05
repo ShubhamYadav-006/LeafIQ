@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum user_role {
+  farmer
+  agronomist
+  admin
+}
+
+enum scan_status {
+  uploaded
+  analyzed_initial
+  questions_pending
+  completed
+  failed
+}
+
+enum concern_level {
+  healthy
+  monitor
+  attention
+  high_concern
+  uncertain
+}
+
+enum evidence_source {
+  visual
+  farmer_reported
+}
+
+enum question_type {
+  single_choice
+  multiple_choice
+  boolean
+  text
+}
+
+enum comparison_trajectory {
+  improving
+  stable
+  worsening
+  unclear
+}
+
+model users {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String    @unique @db.VarChar(255)
+  password_hash String    @db.VarChar(255)
+  full_name     String    @db.VarChar(120)
+  role          user_role @default(farmer)
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime  @default(now()) @db.Timestamptz(6)
+  scans         scans[]
+}
+
+model scans {
+  id                                                               String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                                                          String?                     @db.Uuid
+  parent_scan_id                                                   String?                     @db.Uuid
+  image_url                                                        String
+  original_filename                                                String?                     @db.VarChar(255)
+  file_size_bytes                                                  Int?
+  mime_type                                                        String?                     @db.VarChar(100)
+  crop_name                                                        String?                     @db.VarChar(100)
+  crop_variety                                                     String?                     @db.VarChar(100)
+  crop_confidence                                                  Decimal?                    @db.Decimal(3, 2)
+  initial_condition                                                String?                     @db.VarChar(150)
+  initial_confidence                                               Decimal?                    @db.Decimal(3, 2)
+  initial_notes                                                    String?
+  final_condition                                                  String?                     @db.VarChar(150)
+  final_confidence                                                 Decimal?                    @db.Decimal(3, 2)
+  concern_level                                                    concern_level?
+  assessment_summary                                               String?
+  status                                                           scan_status                 @default(uploaded)
+  created_at                                                       DateTime                    @default(now()) @db.Timestamptz(6)
+  updated_at                                                       DateTime                    @default(now()) @db.Timestamptz(6)
+  action_plans                                                     action_plans?
+  alternative_possibilities                                        alternative_possibilities[]
+  answers                                                          answers[]
+  evidence                                                         evidence[]
+  scan_comparisons_scan_comparisons_baseline_scan_idToscans        scan_comparisons[]          @relation("scan_comparisons_baseline_scan_idToscans")
+  scan_comparisons_scan_comparisons_followup_scan_idToscans        scan_comparisons[]          @relation("scan_comparisons_followup_scan_idToscans")
+  scans                                                            scans?                      @relation("scansToscans", fields: [parent_scan_id], references: [id], onUpdate: NoAction)
+  other_scans                                                      scans[]                     @relation("scansToscans")
+  users                                                            users?                      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  smart_questions                                                  smart_questions[]
+
+  @@index([crop_name], map: "idx_scans_crop_name")
+  @@index([parent_scan_id], map: "idx_scans_parent")
+  @@index([status], map: "idx_scans_status")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_scans_user_created")
+}
+
+model evidence {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scan_id     String          @db.Uuid
+  source      evidence_source
+  title       String          @db.VarChar(150)
+  description String?
+  severity    String?         @db.VarChar(50)
+  created_at  DateTime        @default(now()) @db.Timestamptz(6)
+  scans       scans           @relation(fields: [scan_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([scan_id, source], map: "idx_evidence_scan")
+}
+
+model smart_questions {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scan_id       String        @db.Uuid
+  question_text String
+  question_type question_type @default(single_choice)
+  options       Json          @default("[]")
+  order_index   Int           @default(1)
+  is_required   Boolean       @default(true)
+  created_at    DateTime      @default(now()) @db.Timestamptz(6)
+  answers       answers[]
+  scans         scans         @relation(fields: [scan_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([scan_id, order_index], map: "idx_questions_scan")
+}
+
+model answers {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scan_id          String          @db.Uuid
+  question_id      String          @db.Uuid
+  selected_options Json            @default("[]")
+  answer_text      String?
+  created_at       DateTime        @default(now()) @db.Timestamptz(6)
+  smart_questions  smart_questions @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  scans            scans           @relation(fields: [scan_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([scan_id, question_id], map: "unique_scan_question")
+  @@index([scan_id], map: "idx_answers_scan")
+}
+
+model alternative_possibilities {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scan_id        String   @db.Uuid
+  condition_name String   @db.VarChar(150)
+  confidence     Decimal? @db.Decimal(3, 2)
+  rationale      String
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  scans          scans    @relation(fields: [scan_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([scan_id], map: "idx_alt_possibilities_scan")
+}
+
+model action_plans {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scan_id            String   @unique @db.Uuid
+  immediate_actions  Json     @default("[]")
+  monitoring_steps   Json     @default("[]")
+  prevention_steps   Json     @default("[]")
+  when_to_seek_expert String?
+  disclaimer         String   @default("LeafIQ provides an AI-assisted crop health assessment and should not be treated as a confirmed diagnosis.")
+  created_at         DateTime @default(now()) @db.Timestamptz(6)
+  scans              scans    @relation(fields: [scan_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model scan_comparisons {
+  id                                               String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  baseline_scan_id                                 String                @db.Uuid
+  followup_scan_id                                 String                @db.Uuid
+  trajectory                                       comparison_trajectory @default(unclear)
+  comparison_summary                               String
+  created_at                                       DateTime              @default(now()) @db.Timestamptz(6)
+  scans_scan_comparisons_baseline_scan_idToscans   scans                 @relation("scan_comparisons_baseline_scan_idToscans", fields: [baseline_scan_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  scans_scan_comparisons_followup_scan_idToscans   scans                 @relation("scan_comparisons_followup_scan_idToscans", fields: [followup_scan_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([baseline_scan_id, followup_scan_id], map: "unique_comparison_pair")
+  @@index([baseline_scan_id], map: "idx_comparisons_baseline")
+  @@index([followup_scan_id], map: "idx_comparisons_followup")
+}

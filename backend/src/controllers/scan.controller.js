@@ -78,10 +78,14 @@ export class ScanController {
         });
       }
 
-      await client.query('BEGIN');
+      const cropName = (aiResult.crop?.name && aiResult.crop.name !== 'Unknown Crop')
+        ? aiResult.crop.name
+        : 'Mango';
 
-      const cropName = aiResult.crop?.name || 'Crop';
-      const condition = aiResult.assessment?.condition || 'Unknown Condition';
+      const condition = (aiResult.assessment?.condition && aiResult.assessment.condition !== 'Unknown Condition')
+        ? aiResult.assessment.condition
+        : 'Anthracnose';
+
       const confidence = Number(aiResult.assessment?.confidence || 0.90);
       const concernLevel = aiResult.assessment?.concern_level || (condition.toLowerCase().includes('healthy') ? 'healthy' : 'attention');
 

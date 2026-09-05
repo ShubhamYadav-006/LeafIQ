@@ -167,6 +167,7 @@ export const TRANSLATIONS = {
     actionPlanDesc: 'Receive immediate steps, monitoring indicators, and prevention guidance.',
 
     // Crops
+    crop_Mango: 'Mango',
     crop_Tomato: 'Tomato',
     crop_Potato: 'Potato',
     crop_Corn: 'Corn (Maize)',
@@ -181,6 +182,7 @@ export const TRANSLATIONS = {
     crop_Crop: 'Crop',
 
     // Common Conditions
+    cond_Anthracnose: 'Anthracnose',
     cond_Early_Blight: 'Early Blight',
     cond_Late_Blight: 'Late Blight',
     cond_Bacterial_Spot: 'Bacterial Spot',
@@ -360,6 +362,7 @@ export const TRANSLATIONS = {
     concern_uncertain: 'अनिश्चित / पुनः जांचें',
 
     // Crops
+    crop_Mango: 'आम (Mango)',
     crop_Tomato: 'टमाटर (Tomato)',
     crop_Potato: 'आलू (Potato)',
     crop_Corn: 'मक्का (Corn)',
@@ -374,6 +377,7 @@ export const TRANSLATIONS = {
     crop_Crop: 'फसल',
 
     // Common Conditions
+    cond_Anthracnose: 'एंथ्रेक्नोज़ / काला धब्बा (Anthracnose)',
     cond_Early_Blight: 'अगेती झुलसा (Early Blight)',
     cond_Late_Blight: 'पछेती झुलसा (Late Blight)',
     cond_Bacterial_Spot: 'जीवाणु धब्बा (Bacterial Spot)',
@@ -553,6 +557,7 @@ export const TRANSLATIONS = {
     concern_uncertain: 'अनिश्चित / पुन्हा तपासा',
 
     // Crops
+    crop_Mango: 'आंबा (Mango)',
     crop_Tomato: 'टोमॅटो (Tomato)',
     crop_Potato: 'बटाटा (Potato)',
     crop_Corn: 'मका (Corn)',
@@ -567,6 +572,7 @@ export const TRANSLATIONS = {
     crop_Crop: 'पीक',
 
     // Common Conditions
+    cond_Anthracnose: 'अँथ्रॅकनोज / काळे ठिपके (Anthracnose)',
     cond_Early_Blight: 'लवकर येणारा करपा (Early Blight)',
     cond_Late_Blight: 'उशिरा येणारा करपा (Late Blight)',
     cond_Bacterial_Spot: 'जिवाणूजन्य ठिपके (Bacterial Spot)',
