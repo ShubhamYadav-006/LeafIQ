@@ -1,177 +1,346 @@
-import { execFile } from 'child_process';
-import path from 'path';
-import fs from 'fs';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
+import fs from 'fs';
 import { ApiError } from '../utils/apiError.js';
 
 dotenv.config();
 
-const pythonExecutable = process.env.PYTHON_PATH || path.resolve(process.cwd(), '../.venv/Scripts/python.exe') || 'python';
-const aiScriptPath = process.env.AI_SCRIPT_PATH || path.resolve(process.cwd(), '../ai/src/inference/predict.py');
+const GEMINI_SYSTEM_INSTRUCTION = `You are LeafIQ's primary agricultural vision AI specialist.
+Your mission is to perform visual crop leaf inspection and health assessment for farmers.
+
+CRITICAL ASSESSMENT RULES:
+1. ACTUAL EVIDENCE ONLY: Base your assessment strictly on visible visual evidence in the provided image (leaf shape, color, spots, lesions, chlorosis/yellowing, browning/necrosis, wilting, holes, mold/mildew, visible abnormal patterns). NEVER manufacture symptoms or invent conditions not visible.
+2. IMAGE VALIDATION: First evaluate whether the image contains a clear, usable plant or crop leaf.
+   Mark as insufficient ("image_valid": false, "plant_detected": false, "crop": null, "assessment": {"status": "insufficient_image", "problem": null, "confidence": "Low", "concern_level": "Unable to Assess"}) when:
+   - The image is not a plant or leaf (e.g. human, animal, vehicle, document, room, object, landscape without focus on leaf).
+   - The image is extremely blurry, out of focus, or degraded.
+   - The image is too dark, severely underexposed, or overexposed.
+   - The subject cannot reasonably be identified or there is insufficient visual evidence.
+   NEVER invent a crop or disease when the image is insufficient.
+3. CROP IDENTIFICATION: When a crop leaf is visible, identify the most likely crop (e.g. Tomato, Potato, Corn, Pepper, Grape, Apple, Rice, Wheat, Cotton, Mango, etc.) and assign confidence ("High", "Medium", "Low").
+4. HEALTH ASSESSMENT: Determine if the leaf is:
+   - "healthy": Leaves appear generally green, vibrant, and intact with no obvious disease lesions or pest distress.
+   - "possible_problem": Visible lesions, spots, yellowing, fungal growth, or abnormalities exist. Identify the most likely condition/disease ONLY when evidence supports it.
+   - "insufficient_image": When visual information is inadequate.
+5. HONEST UNCERTAINTY: If symptoms could correspond to multiple diseases (e.g. early blight vs septoria leaf spot), select the most likely condition, describe the visual ambiguity honestly in the description, and list secondary possibilities in "alternative_possibilities". Prefer uncertainty over unsupported guesses.
+6. CONFIDENCE LEVEL: Use strictly "High", "Medium", or "Low". Never use percentages, decimal probabilities, or claims of 100% certainty or guaranteed diagnosis.
+7. FARMER-FRIENDLY GUIDANCE: Provide clear, practical, safe steps in "how_to_fix", "prevention", and "what_to_monitor".
+
+OUTPUT FORMAT: You MUST return a single, strictly valid JSON object conforming to the required schema:
+For disease/problem:
+{
+  "image_valid": true,
+  "plant_detected": true,
+  "crop": {
+    "name": "Tomato",
+    "confidence": "High"
+  },
+  "assessment": {
+    "status": "possible_problem",
+    "problem": "Early Blight",
+    "confidence": "Medium",
+    "concern_level": "Attention Recommended"
+  },
+  "visual_evidence": [
+    "Dark concentric lesions visible on leaf blade",
+    "Yellow chlorotic halos surrounding affected areas"
+  ],
+  "description": "Visual inspection reveals irregular brown-to-black necrotic lesions with yellow chlorotic halos, characteristic of early fungal infection.",
+  "how_to_fix": [
+    "Remove severely affected leaves where appropriate",
+    "Improve airflow around the plants",
+    "Avoid unnecessary leaf wetness"
+  ],
+  "prevention": [
+    "Monitor nearby leaves for new symptoms",
+    "Maintain adequate spacing and airflow",
+    "Remove infected plant material appropriately"
+  ],
+  "what_to_monitor": [
+    "Increase in lesion size",
+    "Appearance of new affected leaves",
+    "Overall plant vigor"
+  ],
+  "alternative_possibilities": [],
+  "disclaimer": "This is an AI-assisted visual assessment and is not a guaranteed expert diagnosis."
+}
+
+For healthy crop:
+{
+  "image_valid": true,
+  "plant_detected": true,
+  "crop": {
+    "name": "Tomato",
+    "confidence": "High"
+  },
+  "assessment": {
+    "status": "healthy",
+    "problem": null,
+    "confidence": "High",
+    "concern_level": "Low"
+  },
+  "visual_evidence": [
+    "Leaves appear generally green and intact",
+    "No obvious disease lesions are visible"
+  ],
+  "description": "The visible leaf appears generally healthy based on the submitted image.",
+  "how_to_fix": [],
+  "prevention": [
+    "Continue regular crop monitoring"
+  ],
+  "what_to_monitor": [
+    "New spots, discoloration, wilting, or abnormal growth"
+  ],
+  "alternative_possibilities": [],
+  "disclaimer": "This is an AI-assisted visual assessment and is not a guaranteed expert diagnosis."
+}
+
+For invalid/unclear image:
+{
+  "image_valid": false,
+  "plant_detected": false,
+  "crop": null,
+  "assessment": {
+    "status": "insufficient_image",
+    "problem": null,
+    "confidence": "Low",
+    "concern_level": "Unable to Assess"
+  },
+  "visual_evidence": [],
+  "description": "The submitted image does not provide enough clear visual information for a reliable crop-health assessment.",
+  "how_to_fix": [],
+  "prevention": [],
+  "what_to_monitor": [],
+  "alternative_possibilities": [],
+  "disclaimer": "Please upload a clear image of the crop leaf."
+}`;
 
 export class AiBridgeService {
   /**
-   * Run 100% Local AI Leaf Analysis without any external APIs.
-   * Executes local Python / PyTorch / CV inference pipeline with fallback agronomist classifier.
+   * Get the configured Gemini generative model instance.
    */
-  static async analyzeImage(absoluteImagePath) {
-    if (!fs.existsSync(absoluteImagePath)) {
-      throw ApiError.notFound(`Image file not found for AI analysis: ${absoluteImagePath}`);
-    }
-
-    return this._analyzeWithLocalEngine(absoluteImagePath);
-  }
-
-  static async _analyzeWithLocalEngine(absoluteImagePath) {
-    const py = fs.existsSync(pythonExecutable) ? pythonExecutable : 'python';
-
-    if (!fs.existsSync(aiScriptPath)) {
-      console.log(`[Local AI Engine] AI script path not detected. Running local agronomist classifier.`);
-      return this._getFallbackAiResponse(absoluteImagePath);
-    }
-
-    return new Promise((resolve) => {
-      const args = [aiScriptPath, '--image', absoluteImagePath];
-
-      execFile(
-        py,
-        args,
-        { timeout: 15000, maxBuffer: 10 * 1024 * 1024 },
-        (error, stdout, stderr) => {
-          if (error) {
-            console.log('[Local AI Engine] Processing via local clinical agronomist model.');
-            return resolve(this._getFallbackAiResponse(absoluteImagePath, error.message));
-          }
-
-          try {
-            const parsed = JSON.parse(stdout.trim());
-            return resolve(parsed);
-          } catch (parseErr) {
-            console.log('[Local AI Engine] Emitting standardized local inference response.');
-            return resolve(this._getFallbackAiResponse(absoluteImagePath, 'Local parser format'));
-          }
-        }
+  static _getGeminiModel() {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey.trim() === '') {
+      throw ApiError.internal(
+        'Gemini API key is not configured. Please set GEMINI_API_KEY in the backend environment.',
+        'GEMINI_API_KEY_MISSING'
       );
+    }
+
+    const modelName = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+    const genAI = new GoogleGenerativeAI(apiKey.trim());
+
+    return genAI.getGenerativeModel({
+      model: modelName,
+      systemInstruction: GEMINI_SYSTEM_INSTRUCTION,
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.2,
+      },
     });
   }
 
+  /**
+   * Analyze an image buffer using Google Gemini multimodal AI.
+   * @param {Buffer|string} imageBufferOrPath - Raw Buffer, base64 data string, or file path
+   * @param {string} mimeType - e.g. 'image/jpeg', 'image/png', 'image/webp'
+   * @returns {Promise<Object>} Standardized LeafIQ structured assessment
+   */
+  static async analyzeImage(imageBufferOrPath, mimeType = 'image/jpeg') {
+    let base64Data = '';
+    let resolvedMime = mimeType || 'image/jpeg';
 
-  static _getFallbackAiResponse(imagePath, reason = 'Fallback engine active') {
-    const filename = path.basename(imagePath).toLowerCase();
-    const isPng = imagePath.toLowerCase().endsWith('.png');
-    const isJpeg = imagePath.toLowerCase().endsWith('.jpg') || imagePath.toLowerCase().endsWith('.jpeg');
-    const isWebp = imagePath.toLowerCase().endsWith('.webp');
+    if (Buffer.isBuffer(imageBufferOrPath)) {
+      base64Data = imageBufferOrPath.toString('base64');
+    } else if (typeof imageBufferOrPath === 'string') {
+      if (imageBufferOrPath.startsWith('data:')) {
+        const matches = imageBufferOrPath.match(/^data:([^;]+);base64,(.+)$/);
+        if (matches) {
+          resolvedMime = matches[1];
+          base64Data = matches[2];
+        } else {
+          base64Data = imageBufferOrPath;
+        }
+      } else if (fs.existsSync(imageBufferOrPath)) {
+        const fileBuffer = fs.readFileSync(imageBufferOrPath);
+        base64Data = fileBuffer.toString('base64');
+        if (imageBufferOrPath.endsWith('.png')) resolvedMime = 'image/png';
+        else if (imageBufferOrPath.endsWith('.webp')) resolvedMime = 'image/webp';
+        else resolvedMime = 'image/jpeg';
+      } else {
+        base64Data = imageBufferOrPath;
+      }
+    } else {
+      throw ApiError.badRequest('Invalid image data provided for AI analysis.');
+    }
 
-    if (!isPng && !isJpeg && !isWebp) {
+    const supportedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!supportedMimes.includes(resolvedMime.toLowerCase())) {
+      return this._buildInsufficientImageResponse(
+        `Unsupported image format '${resolvedMime}'. Please upload a clear JPG, PNG, or WEBP leaf photo.`
+      );
+    }
+
+    const model = this._getGeminiModel();
+    const imagePart = {
+      inlineData: {
+        data: base64Data,
+        mimeType: resolvedMime === 'image/jpg' ? 'image/jpeg' : resolvedMime,
+      },
+    };
+
+    const promptText = `Examine this uploaded image carefully. Follow all LeafIQ assessment rules. Determine if a crop leaf is clearly visible and assess its health. Return strictly structured JSON matching the defined schema.`;
+
+    try {
+      const result = await model.generateContent([imagePart, promptText]);
+      const response = await result.response;
+      const textOutput = response.text();
+
+      return this._parseAndValidateGeminiResponse(textOutput);
+    } catch (err) {
+      console.error('[Gemini AI Engine] Analysis error:', err.message || err);
+
+      if (err.message && (err.message.includes('API_KEY_INVALID') || err.message.includes('API key not valid'))) {
+        throw ApiError.internal(
+          'Gemini API key is invalid. Please verify your GEMINI_API_KEY setting.',
+          'GEMINI_AUTH_ERROR'
+        );
+      }
+      if (err.message && err.message.includes('RESOURCE_EXHAUSTED')) {
+        throw ApiError.internal(
+          'Gemini AI quota exceeded. Please try again shortly.',
+          'GEMINI_QUOTA_EXCEEDED'
+        );
+      }
+
+      throw ApiError.internal(
+        `Gemini AI analysis failed: ${err.message || 'Unknown service error'}`,
+        'GEMINI_ANALYSIS_FAILED'
+      );
+    }
+  }
+
+  /**
+   * Parse and validate Gemini's JSON output according to LeafIQ specification.
+   */
+  static _parseAndValidateGeminiResponse(rawText) {
+    let cleanText = (rawText || '').trim();
+
+    if (cleanText.startsWith('```json')) {
+      cleanText = cleanText.substring(7);
+    } else if (cleanText.startsWith('```')) {
+      cleanText = cleanText.substring(3);
+    }
+    if (cleanText.endsWith('```')) {
+      cleanText = cleanText.substring(0, cleanText.length - 3);
+    }
+    cleanText = cleanText.trim();
+
+    let parsed;
+    try {
+      parsed = JSON.parse(cleanText);
+    } catch (err) {
+      console.warn('[Gemini AI Engine] JSON parse error on raw output:', cleanText);
+      return this._buildInsufficientImageResponse(
+        'The submitted image could not be processed reliably. Please upload a clear image of the crop leaf.'
+      );
+    }
+
+    const normalizeConfidence = (conf) => {
+      if (!conf) return 'Medium';
+      const c = String(conf).toLowerCase();
+      if (c.includes('high')) return 'High';
+      if (c.includes('low')) return 'Low';
+      return 'Medium';
+    };
+
+    if (!parsed.image_valid || !parsed.plant_detected || parsed.assessment?.status === 'insufficient_image') {
       return {
-        status: 'rejected',
         image_valid: false,
-        supported: false,
-        reason: 'Unsupported image format. Please upload a clear JPG, PNG, or WEBP leaf photo.',
-        message: 'Please upload a clear JPG, PNG, or WEBP leaf photo.',
-        validation: {
-          is_valid: false,
-          reason: 'Unsupported image format',
+        plant_detected: false,
+        crop: null,
+        assessment: {
+          status: 'insufficient_image',
+          problem: null,
+          confidence: 'Low',
+          concern_level: 'Unable to Assess',
         },
+        visual_evidence: Array.isArray(parsed.visual_evidence) ? parsed.visual_evidence : [],
+        description:
+          parsed.description ||
+          'The submitted image does not provide enough clear visual information for a reliable crop-health assessment.',
+        how_to_fix: [],
+        prevention: [],
+        what_to_monitor: [],
+        alternative_possibilities: [],
+        disclaimer: parsed.disclaimer || 'Please upload a clear image of the crop leaf.',
       };
     }
 
-    // Intelligent default detection based on common crop leaf characteristics
-    let detectedCrop = 'Mango';
-    let detectedCondition = 'Anthracnose';
-    let visualEvidence = [
-      {
-        title: 'Dark Necrotic Spots',
-        description: 'Irregular dark brown lesions scattered across the leaf blade and veins.',
-        severity: 'attention',
-      },
-      {
-        title: 'Chlorotic Margins',
-        description: 'Yellowing halos surrounding the necrotic centers, indicating fungal activity.',
-        severity: 'attention',
-      },
-    ];
-    let immediateActions = [
-      'Prune and safely burn or bag heavily spotted leaves to stop spore dissemination.',
-      'Avoid overhead sprinkling to keep tree foliage dry.',
-      'Apply a preventative copper-based bio-fungicide spray during cool morning hours.',
-    ];
-    let preventionSteps = [
-      'Ensure adequate canopy pruning for maximum sunlight penetration and airflow.',
-      'Apply balanced potassium and organic compost to strengthen leaf cuticle resistance.',
-      'Clear fallen infected leaf litter from underneath the tree canopy.',
-    ];
-    let monitoringSteps = [
-      'Inspect new tender shoot leaves every 3–4 days for fresh pinpoint spots.',
-      'Check neighboring trees or adjacent foliage for early lesion spread.',
-      'Monitor leaf undersides after heavy dew or rain events.',
-    ];
+    const isHealthy = parsed.assessment?.status === 'healthy' || parsed.assessment?.problem === null;
+    const cropName = parsed.crop?.name || 'Crop';
+    const cropConfidence = normalizeConfidence(parsed.crop?.confidence);
 
-    if (filename.includes('tomato') || filename.includes('blight')) {
-      detectedCrop = 'Tomato';
-      detectedCondition = 'Early Blight';
-    } else if (filename.includes('potato')) {
-      detectedCrop = 'Potato';
-      detectedCondition = 'Late Blight';
-    } else if (filename.includes('corn') || filename.includes('maize')) {
-      detectedCrop = 'Corn';
-      detectedCondition = 'Rust';
-    } else if (filename.includes('grape')) {
-      detectedCrop = 'Grape';
-      detectedCondition = 'Powdery Mildew';
-    } else if (filename.includes('pepper') || filename.includes('chilli')) {
-      detectedCrop = 'Pepper';
-      detectedCondition = 'Bacterial Spot';
-    }
+    const problem = isHealthy ? null : (parsed.assessment?.problem || 'Unspecified Condition');
+    const assessmentStatus = isHealthy ? 'healthy' : 'possible_problem';
+    const assessmentConfidence = normalizeConfidence(parsed.assessment?.confidence);
+    const concernLevel = parsed.assessment?.concern_level || (isHealthy ? 'Low' : 'Attention Recommended');
 
     return {
-      status: 'success',
       image_valid: true,
-      supported: true,
+      plant_detected: true,
       crop: {
-        name: detectedCrop,
-        confidence: 0.92,
+        name: cropName,
+        confidence: cropConfidence,
       },
       assessment: {
-        condition: detectedCondition,
-        pathogen: 'Colletotrichum gloeosporioides / Alternaria',
-        is_healthy: false,
-        confidence: 0.90,
-        concern_level: 'attention',
-        confidence_tier: 'high',
-        what_we_found: `Visual leaf inspection revealed dark necrotic lesions and localized spotting on ${detectedCrop} foliage consistent with ${detectedCondition}.`,
-        visual_evidence: visualEvidence,
-        how_to_fix: immediateActions,
-        prevention: preventionSteps,
-        what_to_monitor: monitoringSteps,
-        disclaimer: 'LeafIQ provides an AI-assisted crop health assessment based on image visual cues and should not replace a laboratory diagnosis.',
+        status: assessmentStatus,
+        problem: problem,
+        confidence: assessmentConfidence,
+        concern_level: concernLevel,
       },
-      alternatives: [
-        {
-          crop: detectedCrop,
-          condition: 'Bacterial Black Spot',
-          confidence: 0.10,
-          rationale: 'Shows secondary visual similarity in early spot formation stage.',
-        },
-      ],
-      validation: {
-        is_valid: true,
-        metrics: {
-          format: 'JPEG',
-          width: 512,
-          height: 512,
-          blur_score: 210.5,
-          vegetation_ratio: 0.65,
-        },
+      visual_evidence: Array.isArray(parsed.visual_evidence) ? parsed.visual_evidence : [],
+      description:
+        parsed.description ||
+        (isHealthy
+          ? `The visible ${cropName} leaf appears generally healthy based on the submitted image.`
+          : `Visual analysis indicates possible ${problem} on ${cropName} foliage.`),
+      how_to_fix: Array.isArray(parsed.how_to_fix) ? parsed.how_to_fix : [],
+      prevention: Array.isArray(parsed.prevention) ? parsed.prevention : [],
+      what_to_monitor: Array.isArray(parsed.what_to_monitor) ? parsed.what_to_monitor : [],
+      alternative_possibilities: Array.isArray(parsed.alternative_possibilities)
+        ? parsed.alternative_possibilities
+        : [],
+      disclaimer:
+        parsed.disclaimer ||
+        'This is an AI-assisted visual assessment and is not a guaranteed expert diagnosis.',
+    };
+  }
+
+  static _buildInsufficientImageResponse(customDescription) {
+    return {
+      image_valid: false,
+      plant_detected: false,
+      crop: null,
+      assessment: {
+        status: 'insufficient_image',
+        problem: null,
+        confidence: 'Low',
+        concern_level: 'Unable to Assess',
       },
-      model: {
-        name: 'LeafIQ-Expert-Agronomist-Vision',
-        version: '1.2.0',
-        architecture: 'multimodal-vision-transformer',
-        checkpoint: 'leafiq_agronomist_best.pth',
-      },
+      visual_evidence: [],
+      description:
+        customDescription ||
+        'The submitted image does not provide enough clear visual information for a reliable crop-health assessment.',
+      how_to_fix: [],
+      prevention: [],
+      what_to_monitor: [],
+      alternative_possibilities: [],
+      disclaimer: 'Please upload a clear image of the crop leaf.',
     };
   }
 }
+
 
 

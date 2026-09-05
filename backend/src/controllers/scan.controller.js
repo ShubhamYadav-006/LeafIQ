@@ -1,4 +1,3 @@
-import path from 'path';
 import { getClient } from '../config/database.js';
 import { ScanRepository } from '../repositories/scanRepository.js';
 import { EvidenceRepository } from '../repositories/evidenceRepository.js';
@@ -6,13 +5,12 @@ import { ActionPlanRepository } from '../repositories/actionPlanRepository.js';
 import { AlternativePossibilitiesRepository } from '../repositories/alternativePossibilitiesRepository.js';
 import { ComparisonRepository } from '../repositories/comparisonRepository.js';
 import { AiBridgeService } from '../services/ai.service.js';
-import { AssessmentSynthesisService } from '../services/assessment.service.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { ApiError } from '../utils/apiError.js';
-import { getUploadDirectory } from '../utils/paths.js';
 
 export class ScanController {
   static async uploadAndCreateScan(req, res, next) {
+    const client = await getClient();
     try {
       const file = req.file;
       if (!file) {
@@ -29,19 +27,28 @@ export class ScanController {
         }
       }
 
-      const imageUrl = `/uploads/${file.filename}`;
+      // Process image in memory as Data URL (100% Vercel serverless compatible, zero local disk writes)
+      const dataUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
       const newScan = await ScanRepository.createScan({
         user_id: userId,
-        image_url: imageUrl,
+        image_url: dataUrl,
         original_filename: file.originalname,
         file_size_bytes: file.size,
         mime_type: file.mimetype,
         parent_scan_id: parent_scan_id || null,
       });
 
-      return sendSuccess(res, { scan: newScan }, 201, 'Leaf photo uploaded successfully');
+      // Analyze immediately via Google Gemini multimodal AI
+      const aiResult = await AiBridgeService.analyzeImage(file.buffer, file.mimetype);
+
+      // Persist findings and format response
+      const resultPayload = await ScanController._persistAndFormatResult(newScan.id, aiResult, client);
+
+      return sendSuccess(res, resultPayload, 201, 'Crop photo analyzed with Gemini AI successfully');
     } catch (err) {
       next(err);
+    } finally {
+      client.release();
     }
   }
 
@@ -56,147 +63,170 @@ export class ScanController {
         throw ApiError.notFound('Scan record not found or access denied');
       }
 
-      const filename = path.basename(scan.image_url);
-      const uploadDir = getUploadDirectory();
-      const absoluteImagePath = path.join(uploadDir, filename);
+      // If already completed and has full assessment, return existing data
+      if (scan.status === 'completed') {
+        const evidence = await EvidenceRepository.listByScanId(id);
+        const alternatives = await AlternativePossibilitiesRepository.listByScanId(id);
+        const actionPlan = await ActionPlanRepository.findByScanId(id);
 
-      // Run AI Inference (100% Local AI Engine)
-      const aiResult = await AiBridgeService.analyzeImage(absoluteImagePath);
-
-      if (!aiResult.image_valid || aiResult.status === 'rejected') {
-        await client.query('BEGIN');
-        await ScanRepository.updateStatus(id, 'failed', client);
-        await client.query('COMMIT');
-
-        return res.status(422).json({
-          success: false,
-          error: {
-            code: 'IMAGE_VALIDATION_FAILED',
-            message: aiResult.reason || aiResult.message || 'The image could not be validated as a clear crop leaf. Please upload a clearer, well-lit leaf photo.',
-            metrics: aiResult.validation?.metrics || {},
+        return sendSuccess(res, {
+          scan,
+          assessment: {
+            crop: scan.crop_name,
+            condition: scan.final_condition,
+            status: scan.final_condition?.toLowerCase().includes('healthy') ? 'healthy' : 'possible_problem',
+            problem: scan.final_condition?.toLowerCase().includes('healthy') ? null : scan.final_condition,
+            confidence: scan.final_confidence >= 0.85 ? 'High' : (scan.final_confidence >= 0.60 ? 'Medium' : 'Low'),
+            concern_level: scan.concern_level || 'Low',
+            description: scan.assessment_summary,
+            what_we_found: scan.assessment_summary,
           },
+          evidence: evidence.filter((e) => e.source === 'visual'),
+          action_plan: actionPlan,
+          alternatives,
         });
       }
 
-      const cropName = (aiResult.crop?.name && aiResult.crop.name !== 'Unknown Crop')
-        ? aiResult.crop.name
-        : 'Mango';
+      // Otherwise analyze from scan.image_url (which is a data: URL)
+      const aiResult = await AiBridgeService.analyzeImage(scan.image_url, scan.mime_type);
+      const resultPayload = await ScanController._persistAndFormatResult(id, aiResult, client);
 
-      const condition = (aiResult.assessment?.condition && aiResult.assessment.condition !== 'Unknown Condition')
-        ? aiResult.assessment.condition
-        : 'Anthracnose';
-
-      const confidence = Number(aiResult.assessment?.confidence || 0.90);
-      const concernLevel = aiResult.assessment?.concern_level || (condition.toLowerCase().includes('healthy') ? 'healthy' : 'attention');
-
-      // Generate or enrich agronomist action plan
-      const basePlan = AssessmentSynthesisService.generateActionPlanForCondition(cropName, condition, concernLevel);
-
-      const immediateActions = (aiResult.assessment?.how_to_fix && aiResult.assessment.how_to_fix.length > 0)
-        ? aiResult.assessment.how_to_fix
-        : basePlan.immediate_actions;
-
-      const preventionSteps = (aiResult.assessment?.prevention && aiResult.assessment.prevention.length > 0)
-        ? aiResult.assessment.prevention
-        : basePlan.prevention_steps;
-
-      const monitoringSteps = (aiResult.assessment?.what_to_monitor && aiResult.assessment.what_to_monitor.length > 0)
-        ? aiResult.assessment.what_to_monitor
-        : basePlan.monitoring_steps;
-
-      const whatWeFound = aiResult.assessment?.what_we_found || basePlan.visible_symptoms;
-      const summaryText = `Visual analysis confirms ${condition} on ${cropName} (${(confidence * 100).toFixed(0)}% confidence). ${whatWeFound}`;
-
-      // Update Scan to completed
-      const updatedScan = await ScanRepository.updateAssessmentComplete(
-        id,
-        {
-          crop_name: cropName,
-          crop_variety: null,
-          crop_confidence: Number(aiResult.crop?.confidence || 0.95),
-          condition: condition,
-          confidence: confidence,
-          concern_level: concernLevel,
-          assessment_summary: summaryText,
-          status: 'completed',
-        },
-        client
-      );
-
-      // Save Visual Evidence
-      let visualEvidenceItems = [];
-      if (aiResult.assessment?.visual_evidence && Array.isArray(aiResult.assessment.visual_evidence) && aiResult.assessment.visual_evidence.length > 0) {
-        visualEvidenceItems = aiResult.assessment.visual_evidence.map((ve) => ({
-          scan_id: id,
-          source: 'visual',
-          title: ve.title || `Visual sign of ${condition}`,
-          description: ve.description || whatWeFound,
-          severity: ve.severity || concernLevel,
-        }));
-      } else {
-        visualEvidenceItems = [
-          {
-            scan_id: id,
-            source: 'visual',
-            title: `Visual cues matching ${condition}`,
-            description: whatWeFound,
-            severity: concernLevel,
-          },
-        ];
-      }
-      await EvidenceRepository.createBatch(visualEvidenceItems, client);
-
-      // Save Alternative Possibilities
-      if (aiResult.alternatives && aiResult.alternatives.length > 0) {
-        const altItems = aiResult.alternatives.map((alt) => ({
-          scan_id: id,
-          condition_name: alt.condition,
-          confidence: alt.confidence,
-          rationale: alt.rationale || `Secondary visual similarity (${(alt.confidence * 100).toFixed(0)}% match).`,
-        }));
-        await AlternativePossibilitiesRepository.createBatch(altItems, client);
-      }
-
-      // Save Action Plan
-      const savedActionPlan = await ActionPlanRepository.createActionPlan(
-        {
-          scan_id: id,
-          immediate_actions: immediateActions,
-          monitoring_steps: monitoringSteps,
-          prevention_steps: preventionSteps,
-          when_to_seek_expert: basePlan.when_to_seek_expert,
-          disclaimer: aiResult.assessment?.disclaimer || basePlan.disclaimer,
-        },
-        client
-      );
-
-      await client.query('COMMIT');
-
-      return sendSuccess(
-        res,
-        {
-          scan: updatedScan,
-          assessment: {
-            crop: cropName,
-            condition: condition,
-            confidence: confidence,
-            concern_level: concernLevel,
-            what_we_found: whatWeFound,
-            summary: summaryText,
-          },
-          evidence: visualEvidenceItems,
-          action_plan: savedActionPlan,
-          alternatives: aiResult.alternatives || [],
-        },
-        200,
-        'Crop AI diagnosis and action plan generated successfully'
-      );
+      return sendSuccess(res, resultPayload, 200, 'Crop AI diagnosis completed successfully');
     } catch (err) {
-      await client.query('ROLLBACK').catch(() => {});
       next(err);
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Helper to persist Gemini results into PostgreSQL and format frontend payload.
+   */
+  static async _persistAndFormatResult(scanId, aiResult, client) {
+    const confMap = { High: 0.95, Medium: 0.70, Low: 0.40 };
+
+    if (!aiResult.image_valid || aiResult.assessment?.status === 'insufficient_image') {
+      await client.query('BEGIN');
+      const updatedScan = await ScanRepository.updateStatus(scanId, 'failed', client);
+      await client.query('COMMIT');
+
+      return {
+        scan: { ...updatedScan, image_valid: false },
+        image_valid: false,
+        plant_detected: false,
+        crop: null,
+        assessment: aiResult.assessment,
+        visual_evidence: [],
+        description: aiResult.description,
+        how_to_fix: [],
+        prevention: [],
+        what_to_monitor: [],
+        alternative_possibilities: [],
+        disclaimer: aiResult.disclaimer,
+        gemini_result: aiResult,
+      };
+    }
+
+    const isHealthy = aiResult.assessment?.status === 'healthy';
+    const cropName = aiResult.crop?.name || 'Crop';
+    const condition = isHealthy ? 'Healthy Plant' : (aiResult.assessment?.problem || 'Unspecified Condition');
+    const cropConfNum = confMap[aiResult.crop?.confidence] || 0.90;
+    const assessmentConfNum = confMap[aiResult.assessment?.confidence] || 0.85;
+
+    let dbConcern = 'attention';
+    const cl = (aiResult.assessment?.concern_level || '').toLowerCase();
+    if (cl.includes('low') || isHealthy) dbConcern = 'healthy';
+    else if (cl.includes('monitor')) dbConcern = 'monitor';
+    else if (cl.includes('high') || cl.includes('severe')) dbConcern = 'high_concern';
+    else if (cl.includes('unable') || cl.includes('uncertain')) dbConcern = 'uncertain';
+
+    await client.query('BEGIN');
+
+    // Update scan row
+    const updatedScan = await ScanRepository.updateAssessmentComplete(
+      scanId,
+      {
+        crop_name: cropName,
+        crop_variety: null,
+        crop_confidence: cropConfNum,
+        condition: condition,
+        confidence: assessmentConfNum,
+        concern_level: dbConcern,
+        assessment_summary: aiResult.description,
+        status: 'completed',
+      },
+      client
+    );
+
+    // Save visual evidence
+    const visualItems = (aiResult.visual_evidence && aiResult.visual_evidence.length > 0)
+      ? aiResult.visual_evidence.map((ve) => ({
+          scan_id: scanId,
+          source: 'visual',
+          title: typeof ve === 'string' ? ve : (ve.title || 'Visual indicator'),
+          description: typeof ve === 'string' ? ve : (ve.description || ''),
+          severity: dbConcern,
+        }))
+      : [
+          {
+            scan_id: scanId,
+            source: 'visual',
+            title: isHealthy ? 'Foliage intact and healthy' : `Visual signs matching ${condition}`,
+            description: aiResult.description,
+            severity: dbConcern,
+          },
+        ];
+
+    await EvidenceRepository.createBatch(visualItems, client);
+
+    // Save alternative possibilities
+    if (aiResult.alternative_possibilities && aiResult.alternative_possibilities.length > 0) {
+      const altItems = aiResult.alternative_possibilities.map((alt) => ({
+        scan_id: scanId,
+        condition_name: typeof alt === 'string' ? alt : (alt.problem || alt.condition || 'Alternative'),
+        confidence: confMap[alt.confidence] || 0.25,
+        rationale: alt.rationale || 'Shows secondary visual similarity.',
+      }));
+      await AlternativePossibilitiesRepository.createBatch(altItems, client);
+    }
+
+    // Save action plan
+    const savedActionPlan = await ActionPlanRepository.createActionPlan(
+      {
+        scan_id: scanId,
+        immediate_actions: aiResult.how_to_fix || [],
+        monitoring_steps: aiResult.what_to_monitor || [],
+        prevention_steps: aiResult.prevention || [],
+        when_to_seek_expert: isHealthy
+          ? 'Reach out for agronomic advice if unexpected spots, wilting, or stunting appear.'
+          : 'If symptoms advance into the upper foliage within 5 days, seek professional agricultural advice.',
+        disclaimer: aiResult.disclaimer || 'This is an AI-assisted visual assessment and is not a guaranteed expert diagnosis.',
+      },
+      client
+    );
+
+    await client.query('COMMIT');
+
+    return {
+      scan: updatedScan,
+      image_valid: true,
+      plant_detected: true,
+      crop: aiResult.crop,
+      assessment: {
+        crop: cropName,
+        condition: condition,
+        status: aiResult.assessment.status,
+        problem: aiResult.assessment.problem,
+        confidence: aiResult.assessment.confidence,
+        concern_level: aiResult.assessment.concern_level,
+        what_we_found: aiResult.description,
+        description: aiResult.description,
+      },
+      evidence: visualItems,
+      action_plan: savedActionPlan,
+      alternatives: aiResult.alternative_possibilities || [],
+      gemini_result: aiResult,
+    };
   }
 
   static async getScanDetails(req, res, next) {

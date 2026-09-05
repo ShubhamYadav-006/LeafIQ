@@ -7,17 +7,8 @@ import { getUploadDirectory } from '../utils/paths.js';
 
 dotenv.config();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = getUploadDirectory();
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const safeFilename = `${uuidv4()}${ext || '.jpg'}`;
-    cb(null, safeFilename);
-  },
-});
+const storage = multer.memoryStorage();
+
 
 const fileFilter = (req, file, cb) => {
   const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];

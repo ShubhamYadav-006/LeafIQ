@@ -28,32 +28,51 @@ export const ImagePreviewPage = () => {
     setCurrentStep(STEPS.ANALYZING);
 
     try {
-      // 1. Upload scan to backend (guest or authenticated)
+      // 1. Upload & analyze via Gemini multimodal engine
       const res = await scanApi.uploadScan(selectedFile, parentScanId);
-      if (res.success && res.data?.scan) {
-        setCurrentScan(res.data.scan);
-
-        // 2. Automatically trigger AI validation & full crop analysis
-        const analyzeRes = await scanApi.analyzeScan(res.data.scan.id);
-
-        if (analyzeRes.success && analyzeRes.data) {
-          if (analyzeRes.data.image_valid === false) {
+      if (res.success && res.data) {
+        // Handle direct response from all-in-one Gemini scan
+        if (res.data.assessment || res.data.gemini_result) {
+          if (res.data.image_valid === false || res.data.assessment?.status === 'insufficient_image') {
             setFlowError(
-              analyzeRes.data.validation_reason ||
-                t('validationFailedSubtitle')
+              res.data.description ||
+              res.data.gemini_result?.description ||
+              t('validationFailedSubtitle')
             );
             setCurrentStep(STEPS.VALIDATION);
             return;
           }
 
-          // Populate complete result data
-          setCurrentScan(analyzeRes.data.scan);
-          setFinalAssessment(analyzeRes.data.scan);
-          setActionPlan(analyzeRes.data.action_plan);
-          setEvidenceData(analyzeRes.data.evidence);
-
-          // Direct transition to Result Page
+          setCurrentScan(res.data.scan);
+          setFinalAssessment(res.data);
+          setActionPlan(res.data.action_plan);
+          setEvidenceData({ visual: res.data.evidence || [] });
           setCurrentStep(STEPS.FINAL_ASSESSMENT);
+          return;
+        }
+
+        // Fallback: analyzeScan endpoint if upload only created record
+        if (res.data.scan?.id) {
+          setCurrentScan(res.data.scan);
+          const analyzeRes = await scanApi.analyzeScan(res.data.scan.id);
+
+          if (analyzeRes.success && analyzeRes.data) {
+            if (analyzeRes.data.image_valid === false || analyzeRes.data.assessment?.status === 'insufficient_image') {
+              setFlowError(
+                analyzeRes.data.description ||
+                analyzeRes.data.validation_reason ||
+                t('validationFailedSubtitle')
+              );
+              setCurrentStep(STEPS.VALIDATION);
+              return;
+            }
+
+            setCurrentScan(analyzeRes.data.scan);
+            setFinalAssessment(analyzeRes.data);
+            setActionPlan(analyzeRes.data.action_plan);
+            setEvidenceData({ visual: analyzeRes.data.evidence || [] });
+            setCurrentStep(STEPS.FINAL_ASSESSMENT);
+          }
         }
       }
     } catch (err) {

@@ -122,7 +122,7 @@ export const ScanDetailsPage = () => {
           }}
         >
           <img
-            src={scan.image_url.startsWith('http') ? scan.image_url : `http://localhost:5000${scan.image_url}`}
+            src={scan.image_url.startsWith('http') || scan.image_url.startsWith('data:') ? scan.image_url : `http://localhost:5000${scan.image_url}`}
             alt="Historical Leaf"
             style={{ width: '100%', height: '100%', objectFit: 'contain', maxHeight: '280px' }}
             onError={(e) => {
