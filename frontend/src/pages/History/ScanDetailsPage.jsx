@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useScanFlow, STEPS } from '../../context/ScanFlowContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { scanApi } from '../../services/api';
 import { ConcernBadge } from '../../components/common/ConcernBadge';
 import { ActionPlanCard } from '../../components/action-plan/ActionPlanCard';
@@ -13,6 +14,7 @@ export const ScanDetailsPage = () => {
     setParentScanId,
   } = useScanFlow();
 
+  const { t, translateCrop, translateCondition } = useLanguage();
   const [scanData, setScanData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -49,7 +51,7 @@ export const ScanDetailsPage = () => {
     return (
       <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
         <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto 12px' }} />
-        <p>Loading scan snapshot details...</p>
+        <p>{t('processing')}</p>
       </div>
     );
   }
@@ -59,13 +61,15 @@ export const ScanDetailsPage = () => {
       <div className="card" style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
         <p style={{ color: '#C92A2A', marginBottom: '16px' }}>{errorMsg || 'Scan record not found.'}</p>
         <button onClick={() => setCurrentStep(STEPS.HISTORY)} className="btn btn-secondary">
-          <ArrowLeft size={16} /> Back to History
+          <ArrowLeft size={16} /> {t('backToHistory')}
         </button>
       </div>
     );
   }
 
   const { scan, evidence, action_plan, alternatives } = scanData;
+  const rawCrop = scan.crop_name || scan.crop || 'Crop';
+  const rawCondition = scan.final_condition || scan.initial_condition || 'Healthy';
 
   return (
     <div className="card" style={{ maxWidth: '680px', margin: '0 auto' }}>
@@ -74,14 +78,14 @@ export const ScanDetailsPage = () => {
         className="btn btn-ghost"
         style={{ width: 'auto', padding: '4px 8px', minHeight: 'auto', fontSize: '14px', marginBottom: '16px' }}
       >
-        <ArrowLeft size={16} /> Back to History
+        <ArrowLeft size={16} /> {t('backToHistory')}
       </button>
 
       {/* Title & Metadata Header */}
       <div
         style={{
           display: 'flex',
-          justify: 'space-between',
+          justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '12px',
@@ -92,14 +96,14 @@ export const ScanDetailsPage = () => {
       >
         <div>
           <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            Historical Scan Snapshot
+            {t('historicalSnapshot')}
           </span>
           <h2 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--primary-hover)', margin: '4px 0 0' }}>
-            {scan.crop_name || scan.crop || 'Crop'} — {scan.final_condition || scan.initial_condition || 'Healthy'}
+            {translateCrop(rawCrop)} — {translateCondition(rawCondition)}
           </h2>
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Calendar size={13} />
-            <span>Scanned on {new Date(scan.created_at).toLocaleString()}</span>
+            <span>{t('scannedOn', { date: new Date(scan.created_at).toLocaleString() })}</span>
           </div>
         </div>
         <ConcernBadge level={scan.concern_level || 'attention'} />
@@ -137,7 +141,7 @@ export const ScanDetailsPage = () => {
       {/* Primary Rescan CTA */}
       <div style={{ marginTop: '28px' }}>
         <button onClick={handleStartRescan} className="btn btn-primary" style={{ height: '50px' }}>
-          <RefreshCw size={20} /> Re-scan / Track Plant Progress
+          <RefreshCw size={20} /> {t('reScanTrack')}
         </button>
       </div>
     </div>
@@ -145,5 +149,3 @@ export const ScanDetailsPage = () => {
 };
 
 export default ScanDetailsPage;
-
-

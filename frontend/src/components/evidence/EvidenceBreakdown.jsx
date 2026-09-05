@@ -1,7 +1,9 @@
 import React from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import { Eye, MessageSquareCheck, AlertCircle } from 'lucide-react';
 
 export const EvidenceBreakdown = ({ evidence, alternatives }) => {
+  const { t } = useLanguage();
   if (!evidence) return null;
 
   const visualList = evidence.visual || [];
@@ -10,7 +12,7 @@ export const EvidenceBreakdown = ({ evidence, alternatives }) => {
   return (
     <div style={{ marginTop: '20px' }}>
       <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '16px', color: 'var(--text-main)' }}>
-        🔍 Transparent Evidence & Rationale
+        🔍 {t('transparentEvidence')}
       </h3>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
@@ -19,7 +21,7 @@ export const EvidenceBreakdown = ({ evidence, alternatives }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
             <Eye size={20} color="var(--primary)" />
             <h4 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--primary-hover)' }}>
-              From the Leaf Photo (Visual)
+              {t('fromPhotoVisual')}
             </h4>
           </div>
           {visualList.length > 0 ? (
@@ -31,7 +33,7 @@ export const EvidenceBreakdown = ({ evidence, alternatives }) => {
               ))}
             </ul>
           ) : (
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>No visual features recorded.</p>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>{t('noVisualRecorded')}</p>
           )}
         </div>
 
@@ -40,7 +42,7 @@ export const EvidenceBreakdown = ({ evidence, alternatives }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
             <MessageSquareCheck size={20} color="#10B981" />
             <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#047857' }}>
-              From Your Answers (Field Context)
+              {t('fromFarmerAnswers')}
             </h4>
           </div>
           {farmerList.length > 0 ? (
@@ -52,7 +54,7 @@ export const EvidenceBreakdown = ({ evidence, alternatives }) => {
               ))}
             </ul>
           ) : (
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>No farmer field observations recorded.</p>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>{t('noFarmerRecorded')}</p>
           )}
         </div>
       </div>
@@ -63,7 +65,7 @@ export const EvidenceBreakdown = ({ evidence, alternatives }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
             <AlertCircle size={18} color="#E67700" />
             <h4 style={{ fontSize: '15px', fontWeight: '700', color: '#E67700' }}>
-              Alternative Differential Possibilities
+              {t('alternativePossibilities')}
             </h4>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

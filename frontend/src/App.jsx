@@ -1,11 +1,12 @@
 import React from 'react';
+import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider } from './context/AuthContext';
 import { ScanFlowProvider, useScanFlow, STEPS } from './context/ScanFlowContext';
 import Navbar from './components/common/Navbar';
 import AuthModal from './components/common/AuthModal';
 import ProgressBar from './components/common/ProgressBar';
 
-// Import All 17 Screens
+// Import All Screens
 import LandingPage from './pages/Landing/LandingPage';
 import StartCheckPage from './pages/Upload/StartCheckPage';
 import UploadPhotoPage from './pages/Upload/UploadPhotoPage';
@@ -69,15 +70,18 @@ const ScreenRouter = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <ScanFlowProvider>
-        <Navbar />
-        <main className="page-wrapper container">
-          <ProgressBar />
-          <ScreenRouter />
-        </main>
-        <AuthModal />
-      </ScanFlowProvider>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <ScanFlowProvider>
+          <Navbar />
+          <main className="page-wrapper container">
+            <ProgressBar />
+            <ScreenRouter />
+          </main>
+          <AuthModal />
+        </ScanFlowProvider>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
+

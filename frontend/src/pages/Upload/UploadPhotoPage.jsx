@@ -1,9 +1,11 @@
 import React, { useRef, useState } from 'react';
 import { useScanFlow, STEPS } from '../../context/ScanFlowContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Camera, Upload, ArrowLeft, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 
 export const UploadPhotoPage = () => {
   const { selectImageFile, setCurrentStep, flowError, setFlowError } = useScanFlow();
+  const { t } = useLanguage();
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -13,13 +15,13 @@ export const UploadPhotoPage = () => {
 
     // Validate size (10MB)
     if (file.size > 10 * 1024 * 1024) {
-      setFlowError('File size exceeds 10MB limit. Please choose a smaller leaf image.');
+      setFlowError(t('fileSizeError'));
       return;
     }
 
     // Validate MIME type
     if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
-      setFlowError('Unsupported file type. Please upload a valid JPG, PNG, or WEBP photo.');
+      setFlowError(t('fileTypeError'));
       return;
     }
 
@@ -59,15 +61,15 @@ export const UploadPhotoPage = () => {
           className="btn btn-ghost"
           style={{ width: 'auto', padding: '4px 8px', minHeight: 'auto', fontSize: '14px' }}
         >
-          <ArrowLeft size={16} /> Back
+          <ArrowLeft size={16} /> {t('back')}
         </button>
       </div>
 
       <h2 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--primary-hover)', marginBottom: '8px' }}>
-        Upload or Take Leaf Photo
+        {t('uploadTitle')}
       </h2>
       <p style={{ fontSize: '15px', color: 'var(--text-muted)', marginBottom: '24px' }}>
-        Select a leaf photo from your device or snap a photo directly using your camera.
+        {t('uploadSubtitle')}
       </p>
 
       {flowError && (
@@ -140,10 +142,10 @@ export const UploadPhotoPage = () => {
           <Upload size={32} color="var(--primary)" />
         </div>
         <h4 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--primary-hover)', marginBottom: '4px' }}>
-          {isDragging ? 'Drop Leaf Image Here' : 'Tap or Drag Leaf Photo Here'}
+          {isDragging ? t('dropzoneDrag') : t('dropzoneTitle')}
         </h4>
         <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-          Supports JPG, PNG, WEBP files (Max 10MB)
+          {t('dropzoneFormats')}
         </p>
       </div>
 
@@ -154,7 +156,7 @@ export const UploadPhotoPage = () => {
           className="btn btn-primary"
           style={{ flex: '1 1 200px' }}
         >
-          <Camera size={20} /> Take Photo with Camera
+          <Camera size={20} /> {t('takePhotoCamera')}
         </button>
 
         <button
@@ -162,7 +164,7 @@ export const UploadPhotoPage = () => {
           className="btn btn-secondary"
           style={{ flex: '1 1 200px' }}
         >
-          <ImageIcon size={20} /> Browse Gallery
+          <ImageIcon size={20} /> {t('browseGallery')}
         </button>
       </div>
     </div>

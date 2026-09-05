@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useScanFlow } from '../../context/ScanFlowContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { X, LogIn, UserPlus, AlertCircle } from 'lucide-react';
 
 export const AuthModal = () => {
   const { authModalOpen, authMode, closeAuthModal, setAuthMode, login, register } = useAuth();
   const { claimCurrentScan } = useScanFlow();
+  const { t } = useLanguage();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -78,12 +80,10 @@ export const AuthModal = () => {
         </button>
 
         <h3 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '8px', color: 'var(--primary-hover)' }}>
-          {authMode === 'login' ? 'Welcome Back Farmer' : 'Create LeafIQ Account'}
+          {authMode === 'login' ? t('welcomeBack') : t('createAccount')}
         </h3>
         <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '20px' }}>
-          {authMode === 'login'
-            ? 'Sign in to save your crop assessments and track scan history.'
-            : 'Register your account to manage historical crop checks.'}
+          {authMode === 'login' ? t('signInDesc') : t('registerDesc')}
         </p>
 
         {errorMsg && (
@@ -108,7 +108,7 @@ export const AuthModal = () => {
         <form onSubmit={handleSubmit}>
           {authMode === 'register' && (
             <div className="input-group">
-              <label className="input-label">Full Name</label>
+              <label className="input-label">{t('fullNameLabel')}</label>
               <input
                 type="text"
                 className="input-field"
@@ -121,7 +121,7 @@ export const AuthModal = () => {
           )}
 
           <div className="input-group">
-            <label className="input-label">Email Address</label>
+            <label className="input-label">{t('emailLabel')}</label>
             <input
               type="email"
               className="input-field"
@@ -133,7 +133,7 @@ export const AuthModal = () => {
           </div>
 
           <div className="input-group">
-            <label className="input-label">Password</label>
+            <label className="input-label">{t('passwordLabel')}</label>
             <input
               type="password"
               className="input-field"
@@ -147,14 +147,14 @@ export const AuthModal = () => {
 
           <button type="submit" className="btn btn-primary" disabled={submitting} style={{ marginTop: '8px' }}>
             {submitting ? (
-              'Processing...'
+              t('processing')
             ) : authMode === 'login' ? (
               <>
-                <LogIn size={18} /> Sign In
+                <LogIn size={18} /> {t('signIn')}
               </>
             ) : (
               <>
-                <UserPlus size={18} /> Register Account
+                <UserPlus size={18} /> {t('register')}
               </>
             )}
           </button>
@@ -163,7 +163,7 @@ export const AuthModal = () => {
         <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '14px', color: 'var(--text-muted)' }}>
           {authMode === 'login' ? (
             <>
-              Don't have an account?{' '}
+              {t('dontHaveAccount')}{' '}
               <button
                 type="button"
                 className="btn-ghost"
@@ -173,12 +173,12 @@ export const AuthModal = () => {
                 }}
                 style={{ padding: '0 4px', minHeight: 'auto', display: 'inline', fontWeight: '700' }}
               >
-                Sign Up
+                {t('signUpLink')}
               </button>
             </>
           ) : (
             <>
-              Already registered?{' '}
+              {t('alreadyRegistered')}{' '}
               <button
                 type="button"
                 className="btn-ghost"
@@ -188,7 +188,7 @@ export const AuthModal = () => {
                 }}
                 style={{ padding: '0 4px', minHeight: 'auto', display: 'inline', fontWeight: '700' }}
               >
-                Sign In
+                {t('signInLink')}
               </button>
             </>
           )}

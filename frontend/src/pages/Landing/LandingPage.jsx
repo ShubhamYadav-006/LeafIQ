@@ -1,11 +1,13 @@
 import React from 'react';
 import { useScanFlow, STEPS } from '../../context/ScanFlowContext';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Camera, Search, HelpCircle, ShieldCheck, ArrowRight, History } from 'lucide-react';
 
 export const LandingPage = () => {
   const { startCropCheck, setCurrentStep } = useScanFlow();
   const { isAuthenticated } = useAuth();
+  const { t } = useLanguage();
 
   return (
     <div className="landing-wrapper">
@@ -35,7 +37,7 @@ export const LandingPage = () => {
             marginBottom: '16px',
           }}
         >
-          <span>🌱 AI-Assisted Crop Health Decision Support</span>
+          <span>🌱 {t('appTagline')}</span>
         </div>
 
         <h1
@@ -47,8 +49,7 @@ export const LandingPage = () => {
             lineHeight: '1.25',
           }}
         >
-          Understand Your Crop.<br />
-          Act Before Problems Spread.
+          {t('heroTitle')}
         </h1>
 
         <p
@@ -59,12 +60,12 @@ export const LandingPage = () => {
             margin: '0 auto 28px',
           }}
         >
-          Upload a photo of your leaf. LeafIQ validates the image, detects crop health symptoms, asks smart field questions, and provides a clear action plan.
+          {t('heroSubtitle')}
         </p>
 
-        <div style={{ maxWidth: '320px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '340px', margin: '0 auto' }}>
           <button onClick={startCropCheck} className="btn btn-primary" style={{ fontSize: '18px', height: '52px' }}>
-            Start Crop Check <ArrowRight size={20} />
+            {t('startCropCheck')} <ArrowRight size={20} />
           </button>
         </div>
 
@@ -75,7 +76,7 @@ export const LandingPage = () => {
               className="btn btn-ghost"
               style={{ fontSize: '14px' }}
             >
-              <History size={16} /> View Your Past Scan History
+              <History size={16} /> {t('viewScanHistoryBtn')}
             </button>
           </div>
         )}
@@ -92,7 +93,7 @@ export const LandingPage = () => {
             color: 'var(--text-main)',
           }}
         >
-          How LeafIQ Protects Your Harvest
+          {t('howLeafIQProtects')}
         </h2>
 
         <div
@@ -117,9 +118,9 @@ export const LandingPage = () => {
             >
               <Camera size={24} color="var(--primary)" />
             </div>
-            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '6px' }}>1. Snap Leaf Photo</h4>
+            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '6px' }}>{t('snapLeafPhotoStep')}</h4>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-              Take a clear picture of the affected plant leaf using your phone camera.
+              {t('snapLeafPhotoDesc')}
             </p>
           </div>
 
@@ -138,9 +139,9 @@ export const LandingPage = () => {
             >
               <Search size={24} color="#0284C7" />
             </div>
-            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '6px' }}>2. AI Validation</h4>
+            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '6px' }}>{t('aiValidationStep')}</h4>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-              AI extracts visual patterns (lesions, chlorosis, spot locations) deterministically.
+              {t('aiValidationDesc')}
             </p>
           </div>
 
@@ -159,9 +160,9 @@ export const LandingPage = () => {
             >
               <HelpCircle size={24} color="#D97706" />
             </div>
-            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '6px' }}>3. Field Questions</h4>
+            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '6px' }}>{t('fieldQuestionsStep')}</h4>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-              Answer 2-3 quick questions about field location and spread rate.
+              {t('fieldQuestionsDesc')}
             </p>
           </div>
 
@@ -180,9 +181,9 @@ export const LandingPage = () => {
             >
               <ShieldCheck size={24} color="#16A34A" />
             </div>
-            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '6px' }}>4. Action Plan</h4>
+            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '6px' }}>{t('actionPlanStep')}</h4>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-              Receive immediate steps, monitoring indicators, and prevention guidance.
+              {t('actionPlanDesc')}
             </p>
           </div>
         </div>

@@ -1,29 +1,32 @@
 import React from 'react';
 import { useScanFlow, STEPS } from '../../context/ScanFlowContext';
-
-const STEP_ORDER = [
-  { step: STEPS.START_CHECK, label: 'Select Photo', phase: 1 },
-  { step: STEPS.UPLOAD, label: 'Upload Photo', phase: 1 },
-  { step: STEPS.PREVIEW, label: 'Inspect Photo', phase: 1 },
-  { step: STEPS.VALIDATION, label: 'Validation', phase: 2 },
-  { step: STEPS.ANALYZING, label: 'AI Diagnosis', phase: 2 },
-  { step: STEPS.FINAL_ASSESSMENT, label: 'Results & Action Plan', phase: 3 },
-];
+import { useLanguage } from '../../context/LanguageContext';
 
 export const ProgressBar = () => {
   const { currentStep } = useScanFlow();
+  const { t } = useLanguage();
+
+  const STEP_ORDER = [
+    { step: STEPS.START_CHECK, labelKey: 'stepSelect' },
+    { step: STEPS.UPLOAD, labelKey: 'stepUpload' },
+    { step: STEPS.PREVIEW, labelKey: 'stepPreview' },
+    { step: STEPS.VALIDATION, labelKey: 'stepValidate' },
+    { step: STEPS.ANALYZING, labelKey: 'stepAnalyze' },
+    { step: STEPS.FINAL_ASSESSMENT, labelKey: 'stepResult' },
+  ];
 
   const currentIndex = STEP_ORDER.findIndex((s) => s.step === currentStep);
   if (currentIndex === -1) return null; // Don't render on Landing/History/Details
 
   const progressPercent = Math.round(((currentIndex + 1) / STEP_ORDER.length) * 100);
+  const currentLabel = t(STEP_ORDER[currentIndex]?.labelKey || 'stepUpload');
 
   return (
     <div style={{ marginBottom: '20px' }}>
       <div
         style={{
           display: 'flex',
-          justify: 'space-between',
+          justifyContent: 'space-between',
           alignItems: 'center',
           marginBottom: '6px',
           fontSize: '13px',
@@ -32,7 +35,7 @@ export const ProgressBar = () => {
         }}
       >
         <span>
-          Step {currentIndex + 1} of {STEP_ORDER.length}: {STEP_ORDER[currentIndex]?.label}
+          {t('stepOf', { current: currentIndex + 1, total: STEP_ORDER.length, label: currentLabel })}
         </span>
         <span>{progressPercent}%</span>
       </div>

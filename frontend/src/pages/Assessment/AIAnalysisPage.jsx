@@ -1,9 +1,11 @@
 import React from 'react';
-import { useScanFlow, STEPS } from '../../context/ScanFlowContext';
+import { useScanFlow } from '../../context/ScanFlowContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Loader2, CheckCircle2, Circle } from 'lucide-react';
 
 export const AIAnalysisPage = () => {
   const { previewUrl } = useScanFlow();
+  const { t } = useLanguage();
 
   return (
     <div className="card" style={{ maxWidth: '540px', margin: '0 auto', textAlign: 'center', padding: '36px 24px' }}>
@@ -26,12 +28,12 @@ export const AIAnalysisPage = () => {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '12px' }}>
         <Loader2 size={24} color="var(--primary)" className="animate-spin" />
         <h2 style={{ fontSize: '22px', fontWeight: '700', color: 'var(--primary-hover)', margin: 0 }}>
-          Analyzing Leaf Photo...
+          {t('analyzingTitle')}
         </h2>
       </div>
 
       <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '28px' }}>
-        LeafIQ is analyzing leaf symptoms, identifying the crop, and synthesizing your customized action plan.
+        {t('analyzingSubtitle')}
       </p>
 
       {/* Progress Timeline Steps */}
@@ -49,17 +51,17 @@ export const AIAnalysisPage = () => {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--primary)' }}>
           <CheckCircle2 size={18} color="var(--primary)" />
-          <span style={{ fontWeight: '600' }}>Leaf Image Quality Validated</span>
+          <span style={{ fontWeight: '600' }}>{t('timelineValidating')}</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--text-main)' }}>
           <Loader2 size={18} color="var(--primary)" className="animate-spin" />
-          <span style={{ fontWeight: '600' }}>AI Crop & Disease Detection...</span>
+          <span style={{ fontWeight: '600' }}>{t('timelineDetecting')}</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--text-light)' }}>
           <Circle size={18} />
-          <span>Generating Remediation & Prevention Plan</span>
+          <span>{t('timelineSynthesizing')}</span>
         </div>
       </div>
     </div>

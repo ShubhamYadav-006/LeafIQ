@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useScanFlow, STEPS } from '../../context/ScanFlowContext';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { ConcernBadge } from '../../components/common/ConcernBadge';
 import { scanApi } from '../../services/api';
 import {
@@ -33,6 +34,7 @@ export const FinalAssessmentPage = () => {
   } = useScanFlow();
 
   const { isAuthenticated, user, openAuthModal } = useAuth();
+  const { t, translateCrop, translateCondition, translateConcern } = useLanguage();
   const [claiming, setClaiming] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -88,10 +90,12 @@ export const FinalAssessmentPage = () => {
     }
   };
 
-  const crop = currentScan?.crop_name || currentScan?.crop || 'Tomato';
-  const condition = currentScan?.final_condition || currentScan?.initial_condition || 'Early Blight';
+  const rawCrop = currentScan?.crop_name || currentScan?.crop || 'Tomato';
+  const rawCondition = currentScan?.final_condition || currentScan?.initial_condition || 'Early Blight';
+  const crop = translateCrop(rawCrop);
+  const condition = translateCondition(rawCondition);
   const confidence = Number(currentScan?.final_confidence || currentScan?.initial_confidence || 0.90);
-  const concernLevel = currentScan?.concern_level || (condition.toLowerCase().includes('healthy') ? 'healthy' : 'attention');
+  const concernLevel = currentScan?.concern_level || (rawCondition.toLowerCase().includes('healthy') ? 'healthy' : 'attention');
   const summary = currentScan?.assessment_summary || '';
 
   const immediateActions = actionPlan?.immediate_actions || [
@@ -115,7 +119,7 @@ export const FinalAssessmentPage = () => {
   const disclaimer = actionPlan?.disclaimer ||
     'LeafIQ provides an AI-assisted crop health assessment based on image visual cues and should not be treated as a definitive laboratory diagnosis.';
 
-  const isHealthy = condition.toLowerCase().includes('healthy');
+  const isHealthy = rawCondition.toLowerCase().includes('healthy');
 
   return (
     <div style={{ maxWidth: '780px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -159,7 +163,6 @@ export const FinalAssessmentPage = () => {
                   fontSize: '13px',
                   padding: '4px 10px',
                   borderRadius: 'var(--radius-full)',
-                  textTransform: 'uppercase',
                   letterSpacing: '0.5px',
                 }}
               >
@@ -201,7 +204,7 @@ export const FinalAssessmentPage = () => {
                 />
               </div>
               <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)' }}>
-                {Math.round(confidence * 100)}% AI Confidence Match
+                {t('confidenceMatch', { confidence: Math.round(confidence * 100) })}
               </span>
             </div>
           </div>
@@ -226,7 +229,7 @@ export const FinalAssessmentPage = () => {
             <Eye size={18} />
           </div>
           <h2 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-main)', margin: 0 }}>
-            What We Found
+            {t('whatWeFound')}
           </h2>
         </div>
 
@@ -285,7 +288,7 @@ export const FinalAssessmentPage = () => {
             <Wrench size={18} />
           </div>
           <h2 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-main)', margin: 0 }}>
-            How to Fix — Action Steps
+            {t('howToFix')}
           </h2>
         </div>
 
@@ -347,7 +350,7 @@ export const FinalAssessmentPage = () => {
             <ShieldCheck size={18} />
           </div>
           <h2 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-main)', margin: 0 }}>
-            Prevention & Long-term Care
+            {t('prevention')}
           </h2>
         </div>
 
@@ -378,7 +381,7 @@ export const FinalAssessmentPage = () => {
             <Activity size={18} />
           </div>
           <h2 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-main)', margin: 0 }}>
-            What to Monitor
+            {t('whatToMonitor')}
           </h2>
         </div>
 
@@ -418,17 +421,17 @@ export const FinalAssessmentPage = () => {
             <BookmarkPlus size={24} />
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--primary-hover)', marginBottom: '6px' }}>
-            Save This Scan to Your Account
+            {t('saveScanPromptTitle')}
           </h3>
           <p style={{ fontSize: '14px', color: 'var(--text-main)', maxWidth: '500px', margin: '0 auto 16px' }}>
-            Login or sign up to save this {crop} diagnosis to your private scan history, track recovery, and compare progress over time.
+            {t('saveScanPromptDesc', { crop })}
           </p>
           <button
             onClick={() => openAuthModal('login')}
             className="btn btn-primary"
             style={{ width: 'auto', padding: '10px 24px', fontSize: '15px' }}
           >
-            <BookmarkPlus size={18} /> Login / Sign Up to Save History
+            <BookmarkPlus size={18} /> {t('loginSaveButton')}
           </button>
         </div>
       ) : (
@@ -449,10 +452,10 @@ export const FinalAssessmentPage = () => {
             <CheckCircle size={20} color="var(--primary)" />
             <div>
               <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--primary-hover)' }}>
-                ✓ Scan Saved to Your Account
+                {t('savedToAccount')}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                Logged in as {user?.full_name || user?.email}
+                {t('loggedInAs')} {user?.full_name || user?.email}
               </div>
             </div>
           </div>
@@ -461,7 +464,7 @@ export const FinalAssessmentPage = () => {
             className="btn btn-secondary"
             style={{ width: 'auto', padding: '6px 14px', fontSize: '13px' }}
           >
-            <History size={16} /> View in Scan History
+            <History size={16} /> {t('viewInHistory')}
           </button>
         </div>
       )}
@@ -480,7 +483,7 @@ export const FinalAssessmentPage = () => {
       >
         <Info size={18} color="#D9480F" style={{ flexShrink: 0, marginTop: '2px' }} />
         <span style={{ fontSize: '13px', color: '#7E3E07', lineHeight: '1.5' }}>
-          <strong>Agricultural Advisory Disclaimer:</strong> {disclaimer}
+          <strong>{t('disclaimerTitle')}</strong> {disclaimer}
         </span>
       </div>
 
@@ -491,7 +494,7 @@ export const FinalAssessmentPage = () => {
           className="btn btn-secondary"
           style={{ flex: '1 1 200px', height: '48px' }}
         >
-          <RefreshCw size={18} /> Take Another Photo
+          <RefreshCw size={18} /> {t('takeAnotherScan')}
         </button>
 
         {isAuthenticated && (
@@ -500,7 +503,7 @@ export const FinalAssessmentPage = () => {
             className="btn btn-primary"
             style={{ flex: '1 1 200px', height: '48px' }}
           >
-            <GitCompare size={18} /> Re-scan & Compare Progress
+            <GitCompare size={18} /> {t('rescanCompare')}
           </button>
         )}
       </div>

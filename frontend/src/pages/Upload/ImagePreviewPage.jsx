@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useScanFlow, STEPS } from '../../context/ScanFlowContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { scanApi } from '../../services/api';
 import { RefreshCw, Play, ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react';
 
@@ -16,6 +17,7 @@ export const ImagePreviewPage = () => {
     parentScanId,
   } = useScanFlow();
 
+  const { t } = useLanguage();
   const [uploading, setUploading] = useState(false);
 
   const handleStartAnalysis = async () => {
@@ -38,7 +40,7 @@ export const ImagePreviewPage = () => {
           if (analyzeRes.data.image_valid === false) {
             setFlowError(
               analyzeRes.data.validation_reason ||
-                'The image could not be validated as a clear crop leaf. Please upload a clearer, well-lit photo focused on the leaf surface.'
+                t('validationFailedSubtitle')
             );
             setCurrentStep(STEPS.VALIDATION);
             return;
@@ -56,7 +58,7 @@ export const ImagePreviewPage = () => {
       }
     } catch (err) {
       console.error('Scan analysis error:', err);
-      setFlowError(err.message || 'Failed to analyze crop image. Please retry with a clearer photo.');
+      setFlowError(err.message || t('validationFailedSubtitle'));
       setCurrentStep(STEPS.VALIDATION);
     } finally {
       setUploading(false);
@@ -71,15 +73,15 @@ export const ImagePreviewPage = () => {
           className="btn btn-ghost"
           style={{ width: 'auto', padding: '4px 8px', minHeight: 'auto', fontSize: '14px' }}
         >
-          <ArrowLeft size={16} /> Choose Another Photo
+          <ArrowLeft size={16} /> {t('back')}
         </button>
       </div>
 
       <h2 style={{ fontSize: '22px', fontWeight: '700', color: 'var(--primary-hover)', marginBottom: '4px' }}>
-        Inspect Leaf Photo
+        {t('inspectTitle')}
       </h2>
       <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-        Ensure the affected leaf spots and plant tissue are clearly visible before proceeding.
+        {t('inspectSubtitle')}
       </p>
 
       {/* Image Preview Container */}
@@ -111,7 +113,7 @@ export const ImagePreviewPage = () => {
             marginBottom: '16px',
           }}
         >
-          No image selected.
+          {t('noImageSelected')}
         </div>
       )}
 
@@ -139,7 +141,7 @@ export const ImagePreviewPage = () => {
           style={{ flex: 1 }}
           disabled={uploading}
         >
-          <RefreshCw size={18} /> Retake / Retouch
+          <RefreshCw size={18} /> {t('retakeButton')}
         </button>
 
         <button
@@ -149,10 +151,10 @@ export const ImagePreviewPage = () => {
           disabled={uploading}
         >
           {uploading ? (
-            'Uploading...'
+            t('uploadingButton')
           ) : (
             <>
-              <Play size={18} /> Analyze Leaf
+              <Play size={18} /> {t('analyzeButton')}
             </>
           )}
         </button>

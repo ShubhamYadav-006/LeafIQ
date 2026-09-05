@@ -1,11 +1,14 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useScanFlow, STEPS } from '../../context/ScanFlowContext';
+import { useLanguage } from '../../context/LanguageContext';
+import LanguageSelector from './LanguageSelector';
 import { Sprout, History, LogIn, LogOut, User } from 'lucide-react';
 
 export const Navbar = () => {
   const { user, isAuthenticated, logout, openAuthModal } = useAuth();
   const { setCurrentStep, resetFlow } = useScanFlow();
+  const { t } = useLanguage();
 
   return (
     <header
@@ -24,6 +27,7 @@ export const Navbar = () => {
           alignItems: 'center',
           justifyContent: 'space-between',
           height: '64px',
+          gap: '8px',
         }}
       >
         {/* Brand Logo */}
@@ -37,6 +41,7 @@ export const Navbar = () => {
             fontWeight: '700',
             fontSize: '20px',
             color: 'var(--primary)',
+            flexShrink: 0,
           }}
         >
           <div
@@ -56,7 +61,10 @@ export const Navbar = () => {
         </div>
 
         {/* Navigation Items */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Language Selector Dropdown */}
+          <LanguageSelector />
+
           <button
             onClick={() => {
               if (isAuthenticated) {
@@ -69,7 +77,7 @@ export const Navbar = () => {
             style={{ padding: '8px 12px', minHeight: '38px', fontSize: '14px' }}
           >
             <History size={18} />
-            <span className="hide-mobile">Scan History</span>
+            <span className="hide-mobile">{t('scanHistory')}</span>
           </button>
 
           {isAuthenticated ? (
@@ -93,7 +101,7 @@ export const Navbar = () => {
               <button
                 onClick={logout}
                 className="btn btn-ghost"
-                title="Log Out"
+                title={t('signOut')}
                 style={{ padding: '8px', minHeight: '38px', width: '38px' }}
               >
                 <LogOut size={18} />
@@ -105,7 +113,7 @@ export const Navbar = () => {
               className="btn btn-secondary"
               style={{ padding: '8px 16px', minHeight: '38px', fontSize: '14px', width: 'auto' }}
             >
-              <LogIn size={18} /> Sign In
+              <LogIn size={18} /> {t('signIn')}
             </button>
           )}
         </div>

@@ -1,9 +1,11 @@
 import React from 'react';
 import { useScanFlow, STEPS } from '../../context/ScanFlowContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Sun, Focus, Crop, ArrowRight, ArrowLeft } from 'lucide-react';
 
 export const StartCheckPage = () => {
   const { setCurrentStep, resetFlow } = useScanFlow();
+  const { t } = useLanguage();
 
   return (
     <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
@@ -12,14 +14,14 @@ export const StartCheckPage = () => {
         className="btn btn-ghost"
         style={{ width: 'auto', padding: '4px 8px', minHeight: 'auto', marginBottom: '16px', fontSize: '14px' }}
       >
-        <ArrowLeft size={16} /> Back to Home
+        <ArrowLeft size={16} /> {t('backToHome')}
       </button>
 
       <h2 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--primary-hover)', marginBottom: '8px' }}>
-        Check Your Crop Health
+        {t('checkCropHealthTitle')}
       </h2>
       <p style={{ fontSize: '15px', color: 'var(--text-muted)', marginBottom: '24px' }}>
-        For accurate AI visual validation, please follow these simple leaf photo guidelines before uploading.
+        {t('checkCropHealthSubtitle')}
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '28px' }}>
@@ -36,9 +38,9 @@ export const StartCheckPage = () => {
             <Sun size={20} />
           </div>
           <div>
-            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '2px' }}>Use Natural Lighting</h4>
+            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '2px' }}>{t('naturalLightingTitle')}</h4>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-              Capture the leaf in clear daylight or bright, even lighting. Avoid heavy dark shadows.
+              {t('naturalLightingDesc')}
             </p>
           </div>
         </div>
@@ -56,9 +58,9 @@ export const StartCheckPage = () => {
             <Focus size={20} />
           </div>
           <div>
-            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '2px' }}>Focus Closely on Leaf</h4>
+            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '2px' }}>{t('focusCloselyTitle')}</h4>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-              Keep the camera in sharp focus on the affected leaf spots or discolored regions.
+              {t('focusCloselyDesc')}
             </p>
           </div>
         </div>
@@ -76,16 +78,16 @@ export const StartCheckPage = () => {
             <Crop size={20} />
           </div>
           <div>
-            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '2px' }}>Center the Foliage</h4>
+            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '2px' }}>{t('centerFoliageTitle')}</h4>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-              Ensure the plant leaf fills most of the photo frame rather than background soil or hands.
+              {t('centerFoliageDesc')}
             </p>
           </div>
         </div>
       </div>
 
       <button onClick={() => setCurrentStep(STEPS.UPLOAD)} className="btn btn-primary" style={{ height: '50px' }}>
-        Continue to Photo Upload <ArrowRight size={20} />
+        {t('continueToUpload')} <ArrowRight size={20} />
       </button>
     </div>
   );

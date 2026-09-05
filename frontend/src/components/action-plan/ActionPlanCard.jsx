@@ -1,13 +1,15 @@
 import React from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import { AlertTriangle, CheckCircle, Shield, UserCheck, AlertCircle } from 'lucide-react';
 
 export const ActionPlanCard = ({ actionPlan }) => {
+  const { t } = useLanguage();
   if (!actionPlan) return null;
 
   return (
     <div className="action-plan-wrapper" style={{ marginTop: '20px' }}>
       <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '16px', color: 'var(--primary-hover)' }}>
-        📋 Recommended Action Plan
+        📋 {t('recommendedActionPlan')}
       </h3>
 
       {/* Tier 1: Immediate Actions */}
@@ -16,7 +18,7 @@ export const ActionPlanCard = ({ actionPlan }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
             <AlertTriangle size={20} color="#D9480F" />
             <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#D9480F' }}>
-              Immediate Steps (Do Today)
+              {t('immediateSteps')}
             </h4>
           </div>
           <ul style={{ paddingLeft: '20px', color: 'var(--text-main)', fontSize: '15px' }}>
@@ -35,7 +37,7 @@ export const ActionPlanCard = ({ actionPlan }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
             <CheckCircle size={20} color="#E67700" />
             <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#E67700' }}>
-              What to Monitor (Next 3–5 Days)
+              {t('whatToMonitorCard')}
             </h4>
           </div>
           <ul style={{ paddingLeft: '20px', color: 'var(--text-main)', fontSize: '15px' }}>
@@ -54,7 +56,7 @@ export const ActionPlanCard = ({ actionPlan }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
             <Shield size={20} color="#2B8A3E" />
             <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#2B8A3E' }}>
-              Long-term Prevention
+              {t('longTermPrevention')}
             </h4>
           </div>
           <ul style={{ paddingLeft: '20px', color: 'var(--text-main)', fontSize: '15px' }}>
@@ -82,7 +84,7 @@ export const ActionPlanCard = ({ actionPlan }) => {
           <UserCheck size={24} color="var(--primary)" style={{ flexShrink: 0, marginTop: '2px' }} />
           <div>
             <h5 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--primary-hover)', marginBottom: '4px' }}>
-              When to Consult an Agricultural Expert
+              {t('whenToConsultExpert')}
             </h5>
             <p style={{ fontSize: '14px', color: 'var(--text-main)' }}>{actionPlan.expert_guidance}</p>
           </div>
