@@ -1,23 +1,15 @@
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 import { ApiError } from '../utils/apiError.js';
+import { getUploadDirectory } from '../utils/paths.js';
 
 dotenv.config();
 
-const uploadDirName = process.env.UPLOAD_DIR || 'uploads';
-const uploadPath = path.isAbsolute(uploadDirName)
-  ? uploadDirName
-  : path.join(process.cwd(), uploadDirName);
-
-if (!fs.existsSync(uploadPath)) {
-  fs.mkdirSync(uploadPath, { recursive: true });
-}
-
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    const uploadPath = getUploadDirectory();
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
@@ -70,4 +62,5 @@ export const handleUploadMiddleware = (req, res, next) => {
     next();
   });
 };
+
 

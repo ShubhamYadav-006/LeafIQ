@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import path from 'path';
 import dotenv from 'dotenv';
 
 import { errorHandler } from './middleware/error.middleware.js';
@@ -11,6 +10,7 @@ import questionRoutes from './routes/question.routes.js';
 import assessmentRoutes from './routes/assessment.routes.js';
 import comparisonRoutes from './routes/comparison.routes.js';
 import { query } from './config/database.js';
+import { getUploadDirectory } from './utils/paths.js';
 
 dotenv.config();
 
@@ -23,12 +23,19 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve uploaded leaf images statically
-const uploadDirName = process.env.UPLOAD_DIR || 'uploads';
-const uploadPath = path.isAbsolute(uploadDirName)
-  ? uploadDirName
-  : path.join(process.cwd(), uploadDirName);
-
+const uploadPath = getUploadDirectory();
 app.use('/uploads', express.static(uploadPath));
+
+// Root API Welcome Route
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'online',
+    service: 'LeafIQ Backend API Server',
+    version: '1.0.0',
+    documentation: '/api/health',
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Healthcheck Route
 app.get('/api/health', async (req, res) => {
@@ -61,4 +68,5 @@ app.use('/api/scans', comparisonRoutes);
 app.use(errorHandler);
 
 export default app;
+
 

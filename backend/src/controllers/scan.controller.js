@@ -9,6 +9,7 @@ import { AiBridgeService } from '../services/ai.service.js';
 import { AssessmentSynthesisService } from '../services/assessment.service.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { ApiError } from '../utils/apiError.js';
+import { getUploadDirectory } from '../utils/paths.js';
 
 export class ScanController {
   static async uploadAndCreateScan(req, res, next) {
@@ -56,10 +57,8 @@ export class ScanController {
       }
 
       const filename = path.basename(scan.image_url);
-      const uploadDir = process.env.UPLOAD_DIR || 'uploads';
-      const absoluteImagePath = path.isAbsolute(uploadDir)
-        ? path.join(uploadDir, filename)
-        : path.join(process.cwd(), uploadDir, filename);
+      const uploadDir = getUploadDirectory();
+      const absoluteImagePath = path.join(uploadDir, filename);
 
       // Run AI Inference (Gemini Vision or Local Engine)
       const aiResult = await AiBridgeService.analyzeImage(absoluteImagePath);
