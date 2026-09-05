@@ -38,7 +38,7 @@ app.get('/', (req, res) => {
 });
 
 // Healthcheck Route
-app.get('/api/health', async (req, res) => {
+app.get(['/api/health', '/health'], async (req, res) => {
   try {
     const dbRes = await query('SELECT NOW()');
     res.status(200).json({
@@ -57,12 +57,21 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// API Routes
+// API Routes (Support both /api/* and /* for serverless rewrites)
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
+
 app.use('/api/scans', scanRoutes);
+app.use('/scans', scanRoutes);
+
 app.use('/api/scans', questionRoutes);
+app.use('/scans', questionRoutes);
+
 app.use('/api/scans', assessmentRoutes);
+app.use('/scans', assessmentRoutes);
+
 app.use('/api/scans', comparisonRoutes);
+app.use('/scans', comparisonRoutes);
 
 // Centralized Error Handling Middleware
 app.use(errorHandler);
