@@ -19,9 +19,14 @@ from PIL import Image, ImageDraw
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.validation import ImageValidator
-from src.schemas import InferenceResponse
-from src.inference import LeafIQInferenceEngine
+try:
+    from src.validation.validation import ImageValidator
+    from src.inference.schemas import InferenceResponse
+    from src.inference.inference import LeafIQInferenceEngine
+except (ImportError, ValueError):
+    from ai.src.validation.validation import ImageValidator
+    from ai.src.inference.schemas import InferenceResponse
+    from ai.src.inference.inference import LeafIQInferenceEngine
 
 
 @pytest.fixture(scope="session")

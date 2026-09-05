@@ -1,6 +1,6 @@
 """LeafIQ AI Package"""
 
-from .schemas import (
+from .inference.schemas import (
     InferenceResponse,
     ImageValidationResult,
     CropInfo,
@@ -8,10 +8,10 @@ from .schemas import (
     AlternativePossibility,
     ModelInfo
 )
-from .validation import ImageValidator
-from .preprocessing import preprocess_image, get_inference_transforms, get_training_transforms
-from .model import LeafIQClassifier, build_model, save_checkpoint, load_checkpoint
-from .inference import LeafIQInferenceEngine
+from .validation.validation import ImageValidator
+from .preprocessing.preprocessing import preprocess_image, get_inference_transforms, get_training_transforms
+from .inference.model import LeafIQClassifier, build_model, save_checkpoint, load_checkpoint
+from .inference.inference import LeafIQInferenceEngine
 
 __all__ = [
     "InferenceResponse",

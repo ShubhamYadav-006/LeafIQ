@@ -1,0 +1,21 @@
+{
+  "name": "leafiq",
+  "version": "1.0.0",
+  "description": "LeafIQ - AI-Powered Crop Disease Diagnosis & Management System",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "test:backend": "cd backend && npm test",
+    "test:ai": "cd ai && python -m unittest discover -s tests"
+  },
+  "keywords": [
+    "agriculture",
+    "ai",
+    "crop-disease",
+    "leafiq"
+  ],
+  "author": "LeafIQ Team",
+  "license": "MIT"
+}
