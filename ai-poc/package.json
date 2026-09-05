@@ -1,0 +1,13 @@
+{
+  "name": "leafiq-ai-poc",
+  "version": "1.0.0",
+  "description": "LeafIQ AI Core Proof of Concept (Image Validation, Symptom Extraction, Structured Classification)",
+  "main": "poc.js",
+  "type": "module",
+  "scripts": {
+    "test": "node test_poc.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
