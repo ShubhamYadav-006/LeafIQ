@@ -60,7 +60,7 @@ export class ScanController {
       const uploadDir = getUploadDirectory();
       const absoluteImagePath = path.join(uploadDir, filename);
 
-      // Run AI Inference (Gemini Vision or Local Engine)
+      // Run AI Inference (100% Local AI Engine)
       const aiResult = await AiBridgeService.analyzeImage(absoluteImagePath);
 
       if (!aiResult.image_valid || aiResult.status === 'rejected') {

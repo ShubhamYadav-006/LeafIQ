@@ -37,7 +37,7 @@ export const TRANSLATIONS = {
     howItWorksTitle: 'How LeafIQ Works in 3 Simple Steps',
     step1Title: '1. Snap a Leaf Photo',
     step1Desc: 'Capture or upload a clear, well-lit photo of the affected plant foliage.',
-    step2Title: '2. Gemini AI Analysis',
+    step2Title: '2. Local AI Analysis',
     step2Desc: 'Our vision model validates image clarity, identifies the crop, and isolates disease symptoms.',
     step3Title: '3. Act with Confidence',
     step3Desc: 'Follow personalized treatment steps, prevention guidelines, and monitor crop recovery.',
