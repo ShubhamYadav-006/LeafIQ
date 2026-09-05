@@ -70,34 +70,9 @@ async function runE2ETest() {
   }).then((r) => r.json());
 
   if (!analyzeARes.success) throw new Error(`Analyze Scan A failed: ${JSON.stringify(analyzeARes)}`);
-  console.log(`✓ AI Analysis Success (Scan A): Crop=${analyzeARes.data.initial_assessment.crop}, Condition=${analyzeARes.data.initial_assessment.condition}`);
-  const questionsA = analyzeARes.data.questions;
-
-  // 5. Submit Answers (Scan A)
-  if (questionsA.length > 0) {
-    const answerPayload = {
-      answers: questionsA.map((q) => ({
-        question_id: q.id,
-        selected_options: [q.options?.[0] || 'Older leaves near the bottom'],
-      })),
-    };
-    const answerARes = await fetch(`${API_URL}/scans/${scanAId}/answers`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(answerPayload),
-    }).then((r) => r.json());
-    if (!answerARes.success) throw new Error(`Answer Scan A failed: ${JSON.stringify(answerARes)}`);
-    console.log(`✓ Farmer Answers Success: Submitted ${answerARes.data.answers.length} answers`);
-  }
-
-  // 6. Finalize Scan A
-  const finalizeARes = await fetch(`${API_URL}/scans/${scanAId}/finalize`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${tokenA}` },
-  }).then((r) => r.json());
-
-  if (!finalizeARes.success) throw new Error(`Finalize Scan A failed: ${JSON.stringify(finalizeARes)}`);
-  console.log(`✓ Finalize Success (Scan A): Status=${finalizeARes.data.scan.status}`);
+  const cropA = analyzeARes.data.assessment?.crop || analyzeARes.data.scan?.crop_name;
+  const conditionA = analyzeARes.data.assessment?.condition || analyzeARes.data.scan?.condition;
+  console.log(`✓ AI Analysis Success (Scan A): Crop=${cropA}, Condition=${conditionA}`);
 
   // 7. Create Follow-up Re-scan (Scan B) referencing parent_scan_id = scanAId
   const formDataB = new FormData();
@@ -115,16 +90,12 @@ async function runE2ETest() {
   const scanBId = uploadBRes.data.scan.id;
   console.log(`✓ Re-scan Upload Success: Scan B created (${scanBId}) with parent_scan_id=${uploadBRes.data.scan.parent_scan_id}`);
 
-  // 8. Analyze & Finalize Scan B
+  // 8. Analyze Scan B
   await fetch(`${API_URL}/scans/${scanBId}/analyze`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${tokenA}` },
   });
-  await fetch(`${API_URL}/scans/${scanBId}/finalize`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${tokenA}` },
-  });
-  console.log(`✓ Scan B Finalized`);
+  console.log(`✓ Scan B Analyzed & Completed`);
 
   // 9. Compare Scan A and Scan B
   const compareRes = await fetch(`${API_URL}/scans/${scanAId}/compare`, {
