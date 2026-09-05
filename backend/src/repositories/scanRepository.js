@@ -80,17 +80,62 @@ export class ScanRepository {
     return res.rows[0];
   }
 
+  static async claimScan(id, user_id, client = null) {
+    const q = client ? client.query.bind(client) : query;
+    const res = await q(
+      `UPDATE scans SET user_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND (user_id IS NULL OR user_id = $1) RETURNING *`,
+      [user_id, id]
+    );
+    return res.rows[0] || null;
+  }
+
+  static async updateAssessmentComplete(id, {
+    crop_name,
+    crop_variety = null,
+    crop_confidence = 0.95,
+    condition,
+    confidence = 0.90,
+    concern_level = 'attention',
+    assessment_summary = '',
+    status = 'completed',
+  }, client = null) {
+    const q = client ? client.query.bind(client) : query;
+    const res = await q(
+      `UPDATE scans SET
+        crop_name = $1,
+        crop_variety = $2,
+        crop_confidence = $3,
+        initial_condition = $4,
+        initial_confidence = $5,
+        final_condition = $4,
+        final_confidence = $5,
+        concern_level = $6,
+        assessment_summary = $7,
+        status = $8,
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = $9
+       RETURNING *`,
+      [crop_name, crop_variety, crop_confidence, condition, confidence, concern_level, assessment_summary, status, id]
+    );
+    return res.rows[0];
+  }
+
   static async findById(id) {
     const res = await query(`SELECT * FROM scans WHERE id = $1`, [id]);
     return res.rows[0] || null;
   }
 
   static async findByIdAndUser(id, user_id) {
-    const res = await query(`SELECT * FROM scans WHERE id = $1 AND user_id = $2`, [id, user_id]);
+    if (!user_id) {
+      const res = await query(`SELECT * FROM scans WHERE id = $1 AND user_id IS NULL`, [id]);
+      return res.rows[0] || null;
+    }
+    const res = await query(`SELECT * FROM scans WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)`, [id, user_id]);
     return res.rows[0] || null;
   }
 
   static async listByUser(user_id, { crop = null, limit = 50, offset = 0 } = {}) {
+    if (!user_id) return [];
     let sql = `SELECT * FROM scans WHERE user_id = $1`;
     const params = [user_id];
 

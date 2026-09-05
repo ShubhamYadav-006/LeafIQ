@@ -1,56 +1,55 @@
 import fs from 'fs';
 import path from 'path';
-import fileUrl from 'url';
 import pg from 'pg';
 import dotenv from 'dotenv';
 
-const { Pool, Client } = pg;
+const { Pool } = pg;
 dotenv.config();
 
-const dbUrl = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/leafiq_db';
-
-async function ensureDatabaseExists() {
-  const urlObj = new URL(dbUrl);
-  const targetDbName = urlObj.pathname.replace(/^\//, '') || 'leafiq_db';
-
-  // Connect to default 'postgres' database to check/create target database
-  urlObj.pathname = '/postgres';
-  const defaultClient = new Client({ connectionString: urlObj.toString() });
-
-  try {
-    await defaultClient.connect();
-    const res = await defaultClient.query(
-      `SELECT 1 FROM pg_database WHERE datname = $1`,
-      [targetDbName]
-    );
-
-    if (res.rowCount === 0) {
-      console.log(`Database '${targetDbName}' does not exist. Creating...`);
-      await defaultClient.query(`CREATE DATABASE "${targetDbName}"`);
-      console.log(`Database '${targetDbName}' created successfully.`);
-    } else {
-      console.log(`Database '${targetDbName}' already exists.`);
-    }
-  } catch (err) {
-    console.warn(`[Warning] Database existence check: ${err.message}. Assuming target DB is available.`);
-  } finally {
-    await defaultClient.end().catch(() => {});
-  }
-}
+const dbUrl = process.env.DATABASE_URL;
 
 export async function runMigrations() {
-  await ensureDatabaseExists();
+  if (!dbUrl) {
+    throw new Error('DATABASE_URL is not defined in environment variables.');
+  }
 
-  const pool = new Pool({ connectionString: dbUrl });
+  const useSsl = dbUrl.includes('sslmode=') || dbUrl.includes('neon.tech') || process.env.NODE_ENV === 'production';
+  const pool = new Pool({
+    connectionString: dbUrl,
+    ssl: useSsl ? { rejectUnauthorized: false } : false,
+  });
 
   try {
-    const currentDir = path.dirname(fileUrl.fileURLToPath(import.meta.url));
-    const sqlPath = path.join(currentDir, '../../migrations/001_initial_schema.sql');
-    const sqlContent = fs.readFileSync(sqlPath, 'utf8');
+    const rootDir = path.resolve(process.cwd(), '..');
+    const migrationsDirs = [
+      path.join(rootDir, 'database/migrations'),
+      path.join(process.cwd(), 'migrations'),
+      path.join(process.cwd(), '../database/migrations'),
+    ];
 
-    console.log('Running PostgreSQL migration: 001_initial_schema.sql...');
-    await pool.query(sqlContent);
-    console.log('Migration completed successfully!');
+    let migrationsDir = migrationsDirs.find((d) => fs.existsSync(d));
+    if (migrationsDir) {
+      const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
+      for (const file of files) {
+        const fullPath = path.join(migrationsDir, file);
+        console.log(`Running PostgreSQL migration: ${file}...`);
+        const sql = fs.readFileSync(fullPath, 'utf8');
+        await pool.query(sql);
+      }
+      console.log('All migrations completed successfully on Neon PostgreSQL!');
+    } else {
+      const fallbackPaths = [
+        path.join(rootDir, 'database/schema.sql'),
+        path.join(process.cwd(), '../database/schema.sql'),
+      ];
+      const sqlPath = fallbackPaths.find((p) => fs.existsSync(p));
+      if (sqlPath) {
+        console.log(`Running PostgreSQL migration from: ${sqlPath}...`);
+        const sqlContent = fs.readFileSync(sqlPath, 'utf8');
+        await pool.query(sqlContent);
+        console.log('Migration completed successfully on Neon PostgreSQL!');
+      }
+    }
   } catch (err) {
     console.error('Migration failed:', err);
     throw err;
@@ -59,9 +58,8 @@ export async function runMigrations() {
   }
 }
 
-if (process.argv[1] && process.argv[1].endsWith('run_migrations.js')) {
+if (process.argv[1] && (process.argv[1].endsWith('run_migrations.js') || process.argv[1].includes('run_migrations'))) {
   runMigrations()
     .then(() => process.exit(0))
     .catch(() => process.exit(1));
 }
-

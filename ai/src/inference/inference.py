@@ -52,8 +52,18 @@ class LeafIQInferenceEngine:
 
         # Load class configuration
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ai_root = os.path.dirname(base_dir)
         if config_path is None or not os.path.exists(config_path):
-            config_path = os.path.join(base_dir, "config", "classes.json")
+            candidates = [
+                os.path.join(ai_root, "config", "classes.json"),
+                os.path.join(base_dir, "config", "classes.json"),
+                "ai/config/classes.json",
+                "config/classes.json"
+            ]
+            for cand in candidates:
+                if os.path.exists(cand):
+                    config_path = cand
+                    break
 
         with open(config_path, "r", encoding="utf-8") as f:
             self.config = json.load(f)

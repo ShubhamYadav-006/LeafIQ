@@ -31,7 +31,7 @@ export const AIAnalysisPage = () => {
       </div>
 
       <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '28px' }}>
-        LeafIQ is executing computer-vision feature extraction and initial assessment synthesis.
+        LeafIQ is analyzing leaf symptoms, identifying the crop, and synthesizing your customized action plan.
       </p>
 
       {/* Progress Timeline Steps */}
@@ -49,17 +49,17 @@ export const AIAnalysisPage = () => {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--primary)' }}>
           <CheckCircle2 size={18} color="var(--primary)" />
-          <span style={{ fontWeight: '600' }}>Leaf Image Validated</span>
+          <span style={{ fontWeight: '600' }}>Leaf Image Quality Validated</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--text-main)' }}>
           <Loader2 size={18} color="var(--primary)" className="animate-spin" />
-          <span style={{ fontWeight: '600' }}>Checking Visual Patterns & Lesions...</span>
+          <span style={{ fontWeight: '600' }}>AI Crop & Disease Detection...</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--text-light)' }}>
           <Circle size={18} />
-          <span>Formulating Smart Follow-up Questions</span>
+          <span>Generating Remediation & Prevention Plan</span>
         </div>
       </div>
     </div>

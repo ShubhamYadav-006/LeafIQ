@@ -1,13 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
-import pg from 'pg';
-const { Pool } = pg;
+import { pool } from '../src/config/database.js';
 
-const API_URL = 'http://localhost:5000/api';
-const pool = new Pool({
-  connectionString: 'postgres://postgres:postgres@localhost:5432/leafiq_db',
-});
+const API_URL = process.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 async function runE2ETest() {
   console.log('=== LEAFIQ END-TO-END SYSTEM INTEGRATION TEST ===\n');
@@ -19,7 +15,8 @@ async function runE2ETest() {
   const imageAPath = path.join(tempDir, `e2e_leaf_a_${Date.now()}.jpg`);
   const imageBPath = path.join(tempDir, `e2e_leaf_b_${Date.now()}.jpg`);
 
-  const pyExe = 'C:\\Users\\Parth Gautam\\AppData\\Local\\Programs\\Python311\\python.exe';
+  const defaultPy = path.resolve(process.cwd(), '../.venv/Scripts/python.exe');
+  const pyExe = process.env.PYTHON_PATH || (fs.existsSync(defaultPy) ? defaultPy : 'python');
   const pyCmdA = `from PIL import Image, ImageDraw; img = Image.new('RGB', (256, 256), (40, 40, 40)); draw = ImageDraw.Draw(img); draw.ellipse([30, 20, 226, 236], fill=(50, 160, 60), outline=(30, 110, 40), width=2); draw.line([128, 30, 128, 230], fill=(70, 190, 80), width=2); img.save(r'${imageAPath}', 'JPEG')`;
   const pyCmdB = `from PIL import Image, ImageDraw; img = Image.new('RGB', (256, 256), (40, 40, 40)); draw = ImageDraw.Draw(img); draw.ellipse([20, 10, 236, 246], fill=(60, 180, 70), outline=(40, 120, 50), width=2); draw.line([128, 30, 128, 230], fill=(80, 200, 90), width=2); img.save(r'${imageBPath}', 'JPEG')`;
 

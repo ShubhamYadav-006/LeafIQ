@@ -57,16 +57,20 @@ export const Navbar = () => {
 
         {/* Navigation Items */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {isAuthenticated && (
-            <button
-              onClick={() => setCurrentStep(STEPS.HISTORY)}
-              className="btn btn-ghost"
-              style={{ padding: '8px 12px', minHeight: '38px', fontSize: '14px' }}
-            >
-              <History size={18} />
-              <span className="hide-mobile">Scan History</span>
-            </button>
-          )}
+          <button
+            onClick={() => {
+              if (isAuthenticated) {
+                setCurrentStep(STEPS.HISTORY);
+              } else {
+                openAuthModal('login');
+              }
+            }}
+            className="btn btn-ghost"
+            style={{ padding: '8px 12px', minHeight: '38px', fontSize: '14px' }}
+          >
+            <History size={18} />
+            <span className="hide-mobile">Scan History</span>
+          </button>
 
           {isAuthenticated ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

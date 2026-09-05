@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useScanFlow } from '../../context/ScanFlowContext';
 import { X, LogIn, UserPlus, AlertCircle } from 'lucide-react';
 
 export const AuthModal = () => {
   const { authModalOpen, authMode, closeAuthModal, setAuthMode, login, register } = useAuth();
+  const { claimCurrentScan } = useScanFlow();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,6 +26,9 @@ export const AuthModal = () => {
       } else {
         await register(email, password, fullName);
       }
+      // Auto-claim any current guest scan so it is preserved in their account
+      await claimCurrentScan();
+
       setEmail('');
       setPassword('');
       setFullName('');

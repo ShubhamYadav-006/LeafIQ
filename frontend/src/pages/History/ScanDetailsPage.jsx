@@ -95,18 +95,18 @@ export const ScanDetailsPage = () => {
             Historical Scan Snapshot
           </span>
           <h2 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--primary-hover)', margin: '4px 0 0' }}>
-            {scan.crop} — {scan.final_condition || scan.initial_condition || 'Healthy'}
+            {scan.crop_name || scan.crop || 'Crop'} — {scan.final_condition || scan.initial_condition || 'Healthy'}
           </h2>
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Calendar size={13} />
             <span>Scanned on {new Date(scan.created_at).toLocaleString()}</span>
           </div>
         </div>
-        <ConcernBadge level={scan.concern_level || 'Attention Recommended'} />
+        <ConcernBadge level={scan.concern_level || 'attention'} />
       </div>
 
       {/* Image Preview if available */}
-      {scan.image_path && (
+      {scan.image_url && (
         <div
           style={{
             width: '100%',
@@ -118,7 +118,7 @@ export const ScanDetailsPage = () => {
           }}
         >
           <img
-            src={`http://localhost:5000/${scan.image_path}`}
+            src={scan.image_url.startsWith('http') ? scan.image_url : `http://localhost:5000${scan.image_url}`}
             alt="Historical Leaf"
             style={{ width: '100%', height: '100%', objectFit: 'contain', maxHeight: '280px' }}
             onError={(e) => {

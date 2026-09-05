@@ -116,9 +116,9 @@ export const ScanHistoryPage = () => {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
                   <h4 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-main)', margin: 0 }}>
-                    {scan.crop || 'Tomato'}
+                    {scan.crop_name || scan.crop || 'Crop'}
                   </h4>
-                  <ConcernBadge level={scan.concern_level || 'Attention Recommended'} />
+                  <ConcernBadge level={scan.concern_level || 'attention'} />
                 </div>
                 <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '4px' }}>
                   Condition: <strong>{scan.final_condition || scan.initial_condition || 'Healthy'}</strong>

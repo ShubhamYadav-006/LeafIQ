@@ -55,6 +55,7 @@ export const scanApi = {
   submitAnswers: (scanId, answers) => api.post(`/scans/${scanId}/answers`, { answers }),
   finalizeScan: (scanId) => api.post(`/scans/${scanId}/finalize`),
   getScanDetails: (scanId) => api.get(`/scans/${scanId}`),
+  claimScan: (scanId) => api.post(`/scans/${scanId}/claim`),
   listScans: () => api.get('/scans'),
   compareScans: (baselineScanId, followupScanId) =>
     api.post(`/scans/${baselineScanId}/compare`, { followup_scan_id: followupScanId }),

@@ -9,6 +9,9 @@ export const ImagePreviewPage = () => {
     previewUrl,
     setCurrentStep,
     setCurrentScan,
+    setFinalAssessment,
+    setActionPlan,
+    setEvidenceData,
     setFlowError,
     parentScanId,
   } = useScanFlow();
@@ -20,37 +23,41 @@ export const ImagePreviewPage = () => {
 
     setUploading(true);
     setFlowError(null);
-    setCurrentStep(STEPS.VALIDATION);
+    setCurrentStep(STEPS.ANALYZING);
 
     try {
-      // 1. Upload scan to backend
+      // 1. Upload scan to backend (guest or authenticated)
       const res = await scanApi.uploadScan(selectedFile, parentScanId);
       if (res.success && res.data?.scan) {
         setCurrentScan(res.data.scan);
 
-        // 2. Automatically trigger AI validation & analysis engine
-        setCurrentStep(STEPS.ANALYZING);
+        // 2. Automatically trigger AI validation & full crop analysis
         const analyzeRes = await scanApi.analyzeScan(res.data.scan.id);
 
         if (analyzeRes.success && analyzeRes.data) {
-          // Check technical validation result
           if (analyzeRes.data.image_valid === false) {
             setFlowError(
               analyzeRes.data.validation_reason ||
-                'Image failed leaf quality checks. Please upload a clearer leaf photo.'
+                'The image could not be validated as a clear crop leaf. Please upload a clearer, well-lit photo focused on the leaf surface.'
             );
-            setCurrentStep(STEPS.VALIDATION); // Stay on validation screen to display clear retake guidance
+            setCurrentStep(STEPS.VALIDATION);
             return;
           }
 
-          // Advance to Initial Assessment
-          setCurrentStep(STEPS.INITIAL_ASSESSMENT);
+          // Populate complete result data
+          setCurrentScan(analyzeRes.data.scan);
+          setFinalAssessment(analyzeRes.data.scan);
+          setActionPlan(analyzeRes.data.action_plan);
+          setEvidenceData(analyzeRes.data.evidence);
+
+          // Direct transition to Result Page
+          setCurrentStep(STEPS.FINAL_ASSESSMENT);
         }
       }
     } catch (err) {
       console.error('Scan analysis error:', err);
-      setFlowError(err.message || 'Failed to analyze crop image. Please retry.');
-      setCurrentStep(STEPS.PREVIEW);
+      setFlowError(err.message || 'Failed to analyze crop image. Please retry with a clearer photo.');
+      setCurrentStep(STEPS.VALIDATION);
     } finally {
       setUploading(false);
     }

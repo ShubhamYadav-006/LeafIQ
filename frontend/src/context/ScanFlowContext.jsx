@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import { scanApi } from '../services/api';
 
 const ScanFlowContext = createContext();
 
@@ -88,6 +89,21 @@ export const ScanFlowProvider = ({ children }) => {
     setCurrentStep(STEPS.PREVIEW);
   };
 
+  const claimCurrentScan = async () => {
+    if (currentScan?.id) {
+      try {
+        const res = await scanApi.claimScan(currentScan.id);
+        if (res.success && res.data?.scan) {
+          setCurrentScan(res.data.scan);
+          return true;
+        }
+      } catch (err) {
+        console.warn('Claiming scan error:', err);
+      }
+    }
+    return false;
+  };
+
   return (
     <ScanFlowContext.Provider
       value={{
@@ -124,6 +140,7 @@ export const ScanFlowProvider = ({ children }) => {
         resetFlow,
         startCropCheck,
         selectImageFile,
+        claimCurrentScan,
       }}
     >
       {children}

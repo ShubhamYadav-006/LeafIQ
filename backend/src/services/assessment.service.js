@@ -1,118 +1,116 @@
 export class AssessmentSynthesisService {
-  static synthesizeFinalAssessment(scan, visualEvidence, farmerAnswers) {
-    const cropName = scan.crop_name || 'Crop';
-    const initialCondition = scan.initial_condition || 'Unspecified Condition';
-    let finalCondition = initialCondition;
-    let finalConfidence = Number(scan.initial_confidence || 0.85);
-    let concernLevel = scan.concern_level || 'attention';
-    let summaryText = '';
-
-    const visualCues = visualEvidence.map((e) => e.title);
-    const farmerCues = [];
-
-    // Analyze farmer responses
-    let locationContext = '';
-    let spreadContext = '';
-    let moistureContext = '';
-
-    for (const ans of farmerAnswers) {
-      const qText = ans.question_text || '';
-      const selected = (ans.selected_options || [])[0] || '';
-
-      if (qText.includes('first notice')) {
-        locationContext = selected;
-        if (selected.includes('Older leaves')) {
-          farmerCues.push('Symptoms first appeared on lower, older leaves');
-        } else if (selected.includes('Newer leaves')) {
-          farmerCues.push('Symptoms first appeared on young top foliage');
-        } else if (selected.includes('Spread evenly')) {
-          farmerCues.push('Symptoms distributed uniformly across canopy');
-        }
-      } else if (qText.includes('spreading')) {
-        spreadContext = selected;
-        if (selected.includes('rapidly')) {
-          farmerCues.push('Rapid symptom progression over 2–4 days');
-          // Rapid spread increases urgency
-          if (concernLevel === 'attention') concernLevel = 'high_concern';
-          finalConfidence = Math.min(0.95, finalConfidence + 0.05);
-        } else if (selected.includes('gradually')) {
-          farmerCues.push('Gradual symptom progression over 1–2 weeks');
-        }
-      } else if (qText.includes('watering') || qText.includes('weather')) {
-        moistureContext = selected;
-        if (selected.includes('overhead') || selected.includes('rain')) {
-          farmerCues.push('High foliage wetness from overhead watering or recent rain');
-          finalConfidence = Math.min(0.95, finalConfidence + 0.04);
-        } else if (selected.includes('Drip')) {
-          farmerCues.push('Leaves kept dry via drip irrigation');
-        }
-      }
-    }
-
-    // Check for ambiguity / contradiction
-    if (locationContext.includes('Not sure') && spreadContext.includes('Not sure')) {
-      finalConfidence = Math.max(0.40, finalConfidence - 0.10);
-      summaryText = `Visual signs indicate possible ${finalCondition}. Field observations were limited, so regular monitoring is advised.`;
-    } else {
-      summaryText = `Synthesized visual evidence and field observations strongly suggest ${finalCondition} on ${cropName}. ${locationContext ? `Symptoms on ${locationContext.toLowerCase()}` : ''} match known disease progression patterns.`;
-    }
-
-    // Tiered Action Plan Generation
+  static generateActionPlanForCondition(cropName = 'Crop', condition = 'Unspecified Condition', concernLevel = 'attention') {
+    const normCondition = condition.toLowerCase();
     const immediateActions = [];
     const monitoringSteps = [];
     const preventionSteps = [];
     let whenToSeekExpert = '';
+    let visibleSymptoms = '';
 
-    if (finalCondition.includes('Early Blight') || finalCondition.includes('Late Blight')) {
-      immediateActions.push('Prune and safely dispose of heavily infected lower leaves (do not compost infected leaves).');
-      immediateActions.push('Avoid overhead watering; direct irrigation to the soil base to keep leaves dry.');
-      immediateActions.push('Sanitize shears and garden tools with rubbing alcohol between plants.');
-
-      monitoringSteps.push('Inspect upper canopy leaves every 2–3 days for new dark spot formation.');
-      monitoringSteps.push('Check nearby healthy plants for early leaf spot development.');
-
-      preventionSteps.push('Ensure adequate row spacing to promote dry airflow through foliage.');
-      preventionSteps.push('Apply organic mulch around the plant base to prevent soil splash during rain.');
-
-      whenToSeekExpert = 'If dark lesions continue spreading rapidly to upper leaves despite dry foliage, consult local agricultural extension services.';
-    } else if (finalCondition.includes('Bacterial Spot')) {
-      immediateActions.push('Remove severely affected leaves during dry weather.');
-      immediateActions.push('Avoid handling or harvesting plants while leaves are wet.');
-
-      monitoringSteps.push('Monitor fruit and stems for raised dark specks or scabs.');
-      monitoringSteps.push('Track whether leaf yellowing increases after rain events.');
-
-      preventionSteps.push('Rotate crops out of Solanaceae family for 2–3 seasons.');
-      preventionSteps.push('Use certified disease-free seeds and transplants.');
-
-      whenToSeekExpert = 'If bacterial spots cover >30% of foliage across multiple plants, consult an agronomist for targeted copper-based control guidance.';
-    } else if (finalCondition.includes('Healthy')) {
-      immediateActions.push('No corrective action needed. Continue current good cultural practices.');
-      monitoringSteps.push('Inspect leaves weekly for early signs of discoloration or pest damage.');
-      preventionSteps.push('Maintain balanced soil moisture and healthy soil organic matter.');
-      whenToSeekExpert = 'Consult an expert if unexplained yellowing or wilting occurs.';
+    if (normCondition.includes('early blight')) {
+      visibleSymptoms = `Dark brown to black concentric target-like spots with yellow chlorotic halos, starting predominantly on lower older leaves.`;
+      immediateActions.push('Prune and safely discard heavily infected lower foliage (do not compost infected plant parts).');
+      immediateActions.push('Direct irrigation to the soil base to avoid splashing water onto foliage.');
+      immediateActions.push('Sanitize pruning shears with rubbing alcohol or a 10% bleach solution between cuts.');
+      monitoringSteps.push('Inspect middle and upper canopy leaves every 2–3 days for newly forming concentric brown rings.');
+      monitoringSteps.push('Monitor adjacent plants in the same row for early lesion spread.');
+      preventionSteps.push('Apply a 2-inch layer of clean organic mulch around base to create a physical barrier against soil-borne fungal spores.');
+      preventionSteps.push('Maintain generous plant spacing (18–24 inches) to ensure maximum airflow and rapid morning drying.');
+      preventionSteps.push('Rotate with non-solanaceous crops for at least 2–3 seasons.');
+      whenToSeekExpert = 'If leaf spot lesions advance into the upper third of the canopy within 5 days despite lower foliage pruning, consult local extension services.';
+    } else if (normCondition.includes('late blight')) {
+      visibleSymptoms = `Water-soaked dark lesions that expand rapidly across leaves and stems, with fuzzy white fungal growth on undersides in humid conditions.`;
+      immediateActions.push('Immediately remove and bag all severely affected foliage to prevent wind-borne spore dispersal.');
+      immediateActions.push('Ensure plants remain strictly dry; suspend overhead sprinkler irrigation.');
+      immediateActions.push('Isolate the affected planting area to prevent spreading spores on clothing and tools.');
+      monitoringSteps.push('Conduct daily morning leaf inspections across the entire field/garden.');
+      monitoringSteps.push('Check stems and fruit for brown greasy-looking water-soaked lesions.');
+      preventionSteps.push('Plant certified disease-resistant crop varieties in well-drained soil.');
+      preventionSteps.push('Space rows widely to allow morning dew to evaporate rapidly.');
+      whenToSeekExpert = 'Late blight is highly contagious and aggressive. Seek immediate guidance from an agronomist if multiple plants show rapid dark decay.';
+    } else if (normCondition.includes('bacterial spot') || normCondition.includes('bacterial speck')) {
+      visibleSymptoms = `Small angular, water-soaked dark spots that may turn greasy, often surrounded by yellow halos, causing leaf yellowing and premature leaf drop.`;
+      immediateActions.push('Avoid touching or working among crops when foliage is wet from rain or dew.');
+      immediateActions.push('Prune out heavily infected leaves during dry, sunny weather.');
+      immediateActions.push('Disinfect all tools and stakes after handling affected plants.');
+      monitoringSteps.push('Track whether spots multiply or yellowing increases following rain or heavy humidity.');
+      monitoringSteps.push('Inspect green fruit for small dark raised scabs or water-soaked specks.');
+      preventionSteps.push('Use certified pathogen-free seeds and disease-resistant transplants.');
+      preventionSteps.push('Switch to drip or soaker hose irrigation to keep foliage completely dry.');
+      preventionSteps.push('Practice a 2 to 3-year crop rotation away from peppers and tomatoes.');
+      whenToSeekExpert = 'If bacterial spots cover >30% of the leaf canopy across multiple beds, consult an agricultural expert regarding copper-based bactericides.';
+    } else if (normCondition.includes('powdery mildew')) {
+      visibleSymptoms = `Distinct white or grey talcum-powder-like patches on leaf surfaces, causing leaves to curl, yellow, and wither.`;
+      immediateActions.push('Prune overcrowded branches to allow direct sunlight penetration into the inner canopy.');
+      immediateActions.push('Wipe or prune infected leaf sections in early morning hours.');
+      monitoringSteps.push('Check the upper surfaces of older and sheltered leaves every 3–4 days.');
+      monitoringSteps.push('Monitor shaded crop rows where relative humidity remains elevated.');
+      preventionSteps.push('Plant in locations with at least 6–8 hours of full direct sun.');
+      preventionSteps.push('Apply organic horticultural oils or potassium bicarbonate sprays as an early preventive wash.');
+      preventionSteps.push('Avoid excessive nitrogen fertilization, which produces overly tender susceptible growth.');
+      whenToSeekExpert = 'If powdery coating spreads to >50% of foliage and stunts flowering or fruit set, seek agronomist advice.';
+    } else if (normCondition.includes('rust')) {
+      visibleSymptoms = `Reddish-orange or golden-brown powdery pustules on the underside of leaves with corresponding pale yellow spots on the upper leaf surface.`;
+      immediateActions.push('Gently remove leaves bearing active spore pustules into a plastic bag.');
+      immediateActions.push('Water only at ground level; rust spores require free moisture to germinate.');
+      monitoringSteps.push('Check leaf undersides weekly, especially during warm, humid weather.');
+      preventionSteps.push('Clear away and burn or bury fallen crop debris in autumn.');
+      preventionSteps.push('Maintain wide row spacing to promote low canopy humidity.');
+      whenToSeekExpert = 'If rust pustules cover extensive foliage and cause premature defoliation, consult agricultural extension.';
+    } else if (normCondition.includes('healthy')) {
+      visibleSymptoms = `Vibrant, uniform green coloration with intact cellular structure, clean veins, and no necrotic lesions, spots, or abnormal curling.`;
+      immediateActions.push('No corrective treatment required! Continue current sound agricultural and cultivation practices.');
+      monitoringSteps.push('Inspect foliage once a week during routine watering for early signs of discoloration or insect pests.');
+      preventionSteps.push('Maintain balanced soil fertility and optimal moisture levels.');
+      preventionSteps.push('Ensure regular weeding to remove potential alternate host weeds.');
+      whenToSeekExpert = 'Reach out for agricultural advice only if unexpected yellowing, wilting, or stunting appears.';
     } else {
-      immediateActions.push('Isolate affected plant parts by carefully trimming damaged leaf tips.');
-      immediateActions.push('Keep leaf canopy dry and clean.');
-      monitoringSteps.push('Check leaf undersides for pests or webbing.');
-      preventionSteps.push('Maintain optimal plant spacing for ventilation.');
-      whenToSeekExpert = 'If symptoms persist or worsen over 5 days, seek professional agricultural review.';
+      visibleSymptoms = `Localized leaf tissue discoloration, spotting, or leaf margin distress consistent with ${condition}.`;
+      immediateActions.push('Carefully remove damaged or discolored leaf tissue using clean shears.');
+      immediateActions.push('Keep leaves dry by watering only at the base of the stem.');
+      immediateActions.push('Clean and sanitize all garden equipment.');
+      monitoringSteps.push('Check the underside of leaves for microscopic pests, webbing, or developing spots.');
+      monitoringSteps.push('Observe plant vigor over the next 4–7 days.');
+      preventionSteps.push('Ensure adequate plant spacing for good air circulation.');
+      preventionSteps.push('Maintain healthy soil rich in organic compost.');
+      whenToSeekExpert = `If symptoms persist, spread to new growth, or worsen over 5 days, seek professional agronomic evaluation.`;
     }
+
+    return {
+      visible_symptoms: visibleSymptoms,
+      immediate_actions: immediateActions,
+      monitoring_steps: monitoringSteps,
+      prevention_steps: preventionSteps,
+      when_to_seek_expert: whenToSeekExpert,
+      disclaimer: 'LeafIQ provides an AI-assisted crop health assessment based on image visual cues and should not be treated as a definitive laboratory diagnosis.',
+    };
+  }
+
+  static synthesizeFinalAssessment(scan, visualEvidence, farmerAnswers = []) {
+    const cropName = scan.crop_name || 'Crop';
+    const finalCondition = scan.final_condition || scan.initial_condition || 'Unspecified Condition';
+    const finalConfidence = Number(scan.final_confidence || scan.initial_confidence || 0.85);
+    const concernLevel = scan.concern_level || (finalCondition.toLowerCase().includes('healthy') ? 'healthy' : 'attention');
+
+    const plan = this.generateActionPlanForCondition(cropName, finalCondition, concernLevel);
+    const summaryText = scan.assessment_summary ||
+      `Visual examination indicates ${finalCondition} on ${cropName} (${(finalConfidence * 100).toFixed(0)}% confidence). ${plan.visible_symptoms}`;
 
     return {
       final_condition: finalCondition,
       final_confidence: Number(finalConfidence.toFixed(2)),
       concern_level: concernLevel,
       assessment_summary: summaryText,
-      farmer_reported_cues: farmerCues,
+      farmer_reported_cues: [],
       action_plan: {
-        immediate_actions: immediateActions,
-        monitoring_steps: monitoringSteps,
-        prevention_steps: preventionSteps,
-        when_to_seek_expert: whenToSeekExpert,
-        disclaimer: 'LeafIQ provides an AI-assisted crop health assessment and should not be treated as a confirmed laboratory diagnosis.',
+        immediate_actions: plan.immediate_actions,
+        monitoring_steps: plan.monitoring_steps,
+        prevention_steps: plan.prevention_steps,
+        when_to_seek_expert: plan.when_to_seek_expert,
+        disclaimer: plan.disclaimer,
       },
     };
   }
 }
+
 

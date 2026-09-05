@@ -2,15 +2,12 @@ import React from 'react';
 import { useScanFlow, STEPS } from '../../context/ScanFlowContext';
 
 const STEP_ORDER = [
-  { step: STEPS.START_CHECK, label: 'Start' },
-  { step: STEPS.UPLOAD, label: 'Upload' },
-  { step: STEPS.PREVIEW, label: 'Preview' },
-  { step: STEPS.VALIDATION, label: 'Validate' },
-  { step: STEPS.ANALYZING, label: 'Analyze' },
-  { step: STEPS.INITIAL_ASSESSMENT, label: 'Visuals' },
-  { step: STEPS.QUESTIONS, label: 'Questions' },
-  { step: STEPS.FINAL_ASSESSMENT, label: 'Report' },
-  { step: STEPS.ACTION_PLAN, label: 'Action' },
+  { step: STEPS.START_CHECK, label: 'Select Photo', phase: 1 },
+  { step: STEPS.UPLOAD, label: 'Upload Photo', phase: 1 },
+  { step: STEPS.PREVIEW, label: 'Inspect Photo', phase: 1 },
+  { step: STEPS.VALIDATION, label: 'Validation', phase: 2 },
+  { step: STEPS.ANALYZING, label: 'AI Diagnosis', phase: 2 },
+  { step: STEPS.FINAL_ASSESSMENT, label: 'Results & Action Plan', phase: 3 },
 ];
 
 export const ProgressBar = () => {
